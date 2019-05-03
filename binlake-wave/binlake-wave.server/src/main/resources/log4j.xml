@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+-->
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+
+    <appender name="STDOUT" class="org.apache.log4j.RollingFileAppender">
+        <param name="file" value="./logs/console.log"/>
+        <param name="append" value="true"/>
+        <param name="maxBackupIndex" value="4"/>
+        <param name="MaxFileSize" value="20MB"/>
+        <param name="encoding" value="UTF-8"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS}  [%-5p] [%t] (%F:%L) - %m%n"/>
+        </layout>
+    </appender>
+    <appender name="INFO" class="org.apache.log4j.RollingFileAppender">
+        <param name="file" value="./logs/info.log"/>
+        <param name="append" value="true"/>
+        <param name="maxBackupIndex" value="4"/>
+        <param name="MaxFileSize" value="20MB"/>
+        <param name="encoding" value="UTF-8"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS}  [%-5p] [%t] (%F:%L) - %m%n"/>
+        </layout>
+    </appender>
+    <appender name="DEBUG" class="org.apache.log4j.RollingFileAppender">
+        <param name="file" value="./logs/debug.log"/>
+        <param name="append" value="true"/>
+        <param name="maxBackupIndex" value="4"/>
+        <param name="MaxFileSize" value="20MB"/>
+        <param name="encoding" value="UTF-8"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS}  [%-5p] [%t] (%F:%L) - %m%n"/>
+        </layout>
+    </appender>
+
+    <appender name="WARN" class="org.apache.log4j.RollingFileAppender">
+        <param name="file" value="./logs/warn.log"/>
+        <param name="append" value="true"/>
+        <param name="maxBackupIndex" value="4"/>
+        <param name="MaxFileSize" value="20MB"/>
+        <param name="encoding" value="UTF-8"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS}  [%-5p] [%t] (%F:%L) - %m%n"/>
+        </layout>
+    </appender>
+
+    <appender name="ERROR" class="org.apache.log4j.RollingFileAppender">
+        <param name="file" value="./logs/error.log"/>
+        <param name="append" value="true"/>
+        <param name="maxBackupIndex" value="4"/>
+        <param name="MaxFileSize" value="20MB"/>
+        <param name="encoding" value="UTF-8"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS}  [%-5p] [%t] (%F:%L) - %m%n"/>
+        </layout>
+    </appender>
+
+    <logger name="infoLogger" additivity="false">
+        <level value="info"/>
+        <appender-ref ref="INFO"/>
+    </logger>
+    <logger name="debugLogger" additivity="false">
+        <level value="info"/> <!-- 默认不输出 仅仅做调试用 -->
+        <appender-ref ref="DEBUG"/>
+    </logger>
+    <logger name="warnLogger" additivity="false">
+        <level value="warn"/>
+        <appender-ref ref="WARN"/>
+    </logger>
+    <logger name="errorLogger" additivity="false">
+        <level value="error"/>
+        <appender-ref ref="ERROR"/>
+    </logger>
+    <root>
+        <level value="info"/>
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+</log4j:configuration>

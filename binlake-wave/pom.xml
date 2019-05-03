@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.jd.binlake</groupId>
+        <artifactId>binlake</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <groupId>com.jd.binlake</groupId>
+    <artifactId>binlake-wave</artifactId>
+    <packaging>pom</packaging>
+    <version>1.0</version>
+    <modules>
+        <module>binlake-wave.common</module>
+        <module>binlake-wave.config</module>
+        <module>binlake-wave.dbsync</module>
+        <module>binlake-wave.filter</module>
+        <module>binlake-wave.protocol</module>
+        <module>binlake-wave.meta</module>
+        <module>binlake-wave.client</module>
+        <module>binlake-wave.parser</module>
+        <module>binlake-wave.produce</module>
+        <module>binlake-wave.zk</module>
+        <module>binlake-wave.interface</module>
+        <module>binlake-wave.server</module>
+        <module>binlake-wave.convert</module>
+        <module>binlake-wave.performance</module>
+        <module>binlake-wave.alarm</module>
+        <module>binlake-wave.http</module>
+    </modules>
+</project>

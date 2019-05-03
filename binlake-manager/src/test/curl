@@ -1,0 +1,33 @@
+curl -l -H "Content-type: application/json" -X POST -d
+'{"topic":"monitor","topicDesc":"监控", "whiteList": ["*.\\.*", "binlake.*", "test.*"],"blackList": ["*.\\.*", "binlake.*", "test.*"]}'
+http://127.0.0.1:9096/create/mqtopic/
+
+curl -l -H "Content-type: application/json" -X POST -d
+'[{"host": "test.towerdbxxxxx.jddb.com", "port":3306,
+"topicRules":[
+{"topic":"monitor3","topicDesc":"监控", "whiteList": ["*.\\.*", "binlake.*", "test.*"],"blackList": ["*.\\.*", "binlake.*", "test.*"]},
+{"topic":"monitor0","topicDesc":"监控", "whiteList": ["*.\\.*", "binlake.*", "test.*"],"blackList": ["*.\\.*", "binlake.*", "test.*"]},
+{"topic":"monitor2","topicDesc":"监控", "whiteList": ["*.\\.*", "binlake.*", "test.*"],"blackList": ["*.\\.*", "binlake.*", "test.*"]}]
+}]'
+http://127.0.0.1:9096/create/znodes/
+
+curl -l -H "Content-type: application/json" -X POST -d '{"host":"192.168.200.158","port":"3306"}' http://127.0.0.1:9096/list/detail/
+
+curl -l -H "Content-type: application/json" -X POST -d
+'{"host": "192.168.200.158","port":"3306","topic":"monitor4","topicDesc":"监控", "whiteList": ["*.\\.*", "binlake.*", "test.*"],
+ "whiteList": ["*.\\.*", "binlake.*", "test.*"]}'
+http://127.0.0.1:9096/update/topic
+
+
+curl -l -H "Content-type: application/json" -X POST -d '{"authHosts":["127.0.0.1"]}' http://127.0.0.1:9096/authorize/mysql/
+
+curl -l -H "Content-type: application/json" -X POST -d '{"domainList": [{"host": "192.168.200.158", "port":3306}], "topicRules": [{ "topic": "monitor4", "topicDesc": "监控", "whiteList": [ "*.\\.*", "binlake.*" ], "blackList": [ "*.\\.*", "binlake.*" ] }, { "topic": "monitor5", "topicDesc": "监控", "whiteList": [ "*.\\.*", "binlake.*" ], "blackList": [ "*.\\.*", "binlake.*" ] } ] }' http://127.0.0.1:9096/update/instance/
+
+curl -l -H "Content-type: application/json" -X POST -d '{"host": "127.0.0.1", "port": 3358}' http://127.0.0.1:9096/reset/znode/
+
+curl -l -H "Content-type: application/json" -X POST -d '{"domainList": [{"host": "192.168.200.158", "port":3306}], "topicRules": [{ "topic": "monitor4", "topicDesc": "监控", "withTransaction": true, "whiteList": [ "*.\\.*", "binlake.*" ], "blackList": [ "*.\\.*", "binlake.*" ] }, { "topic": "monitor5", "topicDesc": "监控", "whiteList": [ "*.\\.*", "binlake.*" ], "blackList": [ "*.\\.*", "binlake.*" ] } ] }' http://127.0.0.1:9096/update/instance/
+
+# reset binlog
+curl -l -H "Content-type: application/json" -X POST -d '[{"host": "kafkatest.jddb.com", "port": 3306}]' http://127.0.0.1:9096/reset/binlogs/
+
+curl -l -H "Content-type: application/json" -X POST -d '{"host": "testmeet103.jddb.com", "port": 3358}' http://127.0.0.1:9096/reset/counter/
