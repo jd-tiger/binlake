@@ -68,8 +68,7 @@ zookeeper保证元数据的可用性， 每次更新都会将数据写入到zook
 
 #### 前提： 
 （1）jdk使用1.7以上的版本，因为jdk1.7开启g1的gc算法  
-
-（2）git clone https://github.com/jd-tiger/binlake
+（2）git clone https://github.com/jd-tiger/binlake  
 （3）mvn clean install   
 （4）cd ./binlake-wave/binlake-wave.server/target  
 （5）ls binlake-wave.server-3.0.tar.gz {就是编译之后的整个工程包 直接解压 tar -xvf binlake-wave.server-3.0.tar.gz }  
