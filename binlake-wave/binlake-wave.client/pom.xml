@@ -22,10 +22,10 @@
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.jd.jmq</groupId>
-            <artifactId>jmq-client-core</artifactId>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>com.jd.jmq</groupId>-->
+            <!--<artifactId>jmq-client-core</artifactId>-->
+        <!--</dependency>-->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.10</artifactId>

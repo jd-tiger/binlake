@@ -46,7 +46,6 @@ public class TowerServer {
         SetLeaderHandler.register();
         SetCandidateHandler.register();
         SetTerminalHandler.register();
-        RollbackHandler.register();
         GetSlaveBinlogHandler.register();
 
         ContextHandlerCollection contexts = new ContextHandlerCollection();

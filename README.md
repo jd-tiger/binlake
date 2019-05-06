@@ -1,88 +1,54 @@
 # binlake 
 
-## 最近更新： 
+BinLake是一个集群化的数据库Binary Log管理、采集和分发系统，并且透明集成JMQ和Kafka等消息分发和订阅系统。
 
-* 欢迎加入技术讨论 wx群： binlake
+##　背景
 
-* 背景  
-    使用背景，基于[canal](https://github.com/alibaba/canal), dbsync & filter reg package are referenced from [dbsync](https://github.com/alibaba/canal/tree/master/dbsync) and [filter](https://github.com/alibaba/canal/tree/master/filter)  
-    目前的使用场景，仅仅能够供当前业务使用，相当于一主多备的情况，对于业务来说，严重浪费资源， 所以需要提供一个公共的平台，供业务方及时消费订阅  
-    目前支持的binlog解析版本主要支持MySQL， 后续会加入对其他数据库的支持，目前支持的MySQL版本(mysql-5.5.54， mysql-5.7.16， mysql-5.6.34， mysql-5.6.20)  
-    基于MySQLbinlog 的日志消费订阅业务场景[canal](https://github.com/alibaba/canal)   
+* 项目背景  
+    BinLake之前，各个业务部门若想要对数据库的binlog日志进行采集和订阅，并根据订阅到的BinLog日志进行分析并实现特定的业务目标需要经过：
+    
+    * 日志采集产品调研[**canal**](https://github.com/alibaba/canal)
+    * 资源申请
+    * Binary Log采集服务部署
+    * 发布订阅系统调研（eg:kafka）
+    * 日志采集与消息发布订阅系统集成开发与测试
+    * 业务应用开发、测试、上线  
 
-* 作用  
-    数据库的实时备份 etc, [canal](https://github.com/alibaba/canal) 当中的日志采集功能完全支持
+    按照上述步骤依次进行，我们发现在步入正题（业务系统研发）之前，我们需要做的太多太多，这种方式既费时又费力，工作效率及其低下。  
+    
+    除此之外，在BinLake出现之前，各个业务部门需要若想要基于MySQL 的Binary Log进行进行业务研发， 每个部门都需要配备专业的日志采集和消息处理的专业工程师，
+    并且都需要从头到尾将整个技术堆栈重新梳理和调研一遍， 并且一旦项目上线，后续还需要持续的投入人员对基础服务和平台进行持续的运维和管理。    
+    
+    这种方式存在极大的人员和资源浪费，由于各个部门都是自己另立炉灶， 各个部门系统的稳定性大部分都是有研发人员兼职保证、部门之间存在技术壁垒、资源不能共享、监控和预警机制简陋等。
 
-* 提升  
-    * 分布式集群任意横向扩展
-	* wave服务的无状态
-	* 服务之间的互为主备
-	* dump 延迟动态均衡
-	* 单点服务异常集群内部自由切换
+## 目标  
+* 目标    
+    * 提高研发效率  
+        BinLake旨在提高基于数据库Binary Log的业务系统的研发效率，缩短研发周期。  
+        业务研发部门通过使用BinLake，可以透明的实现数据库Binary Log的自动化采集、分发和订阅，因此无需再重复的花费时间进行实际业务研发工作之前的基础技术调研和基础平台建设，因为所有这些工作，均由BinLake为您提供。
+        使用BinLake服务将会极大的所有研发周期，提升研发效率，其系统开发步骤如下：    
+        ![image](./doc/app-procedure.png)    
+        从上图可以看到使用了使用了BinLake之后， 在进行实际的业务系统研发之前，不用再自建数据库日志采集、管理、发布和订阅系统，而是直接申请接入BinLake集群，然后接入JMQ或者Kafka即可，而这两部申请工作均有线上系统提供申请入口
+        
+    * 实现技术和资源共享  
+        BinLake坚持技术和资源共享的原则，为京东商城各个业务部门提供统一的资源和技术服务，
+        各个业务部门通过使用BinLake服务，避免的重复投入人力对同一项技术进行研究，避免了各个部门为了满足同一种业务需求而重复申请资源，
+        进而避免的资源浪费，避免的各个业务部门重复投入人力和物力进行数据库日志采集、管理、分发、订阅系统的运维。
 
-* 项目引用  
-    binlog 协议解析采用canal的源码  
-    库表过滤规则采用 canal的 AviaterRegexFilter  
-    发往MQ的消息格式采用的是canal的protobuf格式代码{因为需要兼容canal, 并且这块canal做了很好的扩展性}  
+## 原理介绍  
+[BinLake-principle](./doc/binlake-principle.md)  
 
-## 项目介绍：
+## 架构设计  
+[BinLake-arc](./doc/binlake-arc.md)  
 
-wave集群： binary log lake， 所有的数据都会往lake当中写入
+## 部署方案  
+[BinLake-deploy](./doc/binlake-deploy.md)  
 
-## wiki文档列表： 
+## 使用文档  
+[BinLake-start](./doc/binlake-start.md)  
 
-1， HOME  
-2， INTRODUCTION  
-3， QUICKSTART  
-4， DEVELOPER  
+## 开源引用  
+[BinLake-quote](./doc/binlake-quote.md)
 
-
-### INTRODUCTION
-
-#### 原理： 
-MySQL从库复制  
-
-#### 目标：  
-中心化元数据，服务集群无状态  
-
-#### 前提：  
-MySQL开启binlog，master id必须配置， binlog的格式必须是row模式  
-
-#### 协议：  
-MySQL主从复制协议， jdk大小端转换  
-
-#### 软件架构设计：  
-![image](./doc/binlake-arc.jpg)
-
-#### 部署架构设计: 
-![image](./doc/binlake-deploy.jpg)
-
-#### 服务无状态设计：    
-整个集群无状态， 任何一次zookeeper当中监听节点下子节点的变更都会从zk上得到通知，并且开始提供服务且保证，针对任何一台MySQL服务， 有且仅有一台wave服务提供 binlog dump
-
-#### HA：  
-zookeeper保证元数据的可用性， 每次更新都会将数据写入到zookeeper当中，保证数据不丢失， 但是如果继续从这个位置开始dump的话，将会出现一定量的数据重复
-
-
-### QUICKSTART
-
-#### 前提： 
-（1）jdk使用1.7以上的版本，因为jdk1.7开启g1的gc算法  
-
-（2）git clone https://github.com/jd-tiger/binlake
-（3）mvn clean install   
-（4）cd ./binlake-wave/binlake-wave.server/target  
-（5）ls binlake-wave.server-3.0.tar.gz {就是编译之后的整个工程包 直接解压 tar -xvf binlake-wave.server-3.0.tar.gz }  
-
-#### 配置文件说明：  
-（1）\# 业务端使用的zk地址：   
-
-zk.servers=127.0.0.1:2181  
-
-（2）\# 消息队列的类型  
-mq.type=目前支持kafka 和 JMQ 两种  
-
-... 其余参数请查看config.properties文档
-
-（3）cd binlake-wave.server-3.0/bin && ./start.sh 直接启动即可{启动脚本可能需要修改xmx大小)
-
+## Q&A 
+[Binlake-qa](./doc/binlake-qa.md)  

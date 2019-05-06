@@ -47,11 +47,6 @@
             <version>2.0</version>
         </dependency>
         <dependency>
-            <groupId>com.jd.binlake</groupId>
-            <artifactId>binlake-wave.meta</artifactId>
-            <version>2.0</version>
-        </dependency>
-        <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
         </dependency>
@@ -67,16 +62,6 @@
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-recipes</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.jd.binlake</groupId>
-            <artifactId>binlake-wave.server</artifactId>
-            <version>3.0</version>
-        </dependency>
-        <!--<dependency>-->
-            <!--<groupId>org.apache.oozie</groupId>-->
-            <!--<artifactId>oozie-client</artifactId>-->
-            <!--<version>4.3.0</version>-->
-        <!--</dependency>-->
     </dependencies>
 
     <build>
