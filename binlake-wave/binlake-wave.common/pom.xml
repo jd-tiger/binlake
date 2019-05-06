@@ -29,10 +29,10 @@
             <groupId>oro</groupId>
             <artifactId>oro</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.jd.ump</groupId>
-            <artifactId>profiler</artifactId>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>com.jd.ump</groupId>-->
+            <!--<artifactId>profiler</artifactId>-->
+        <!--</dependency>-->
         <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>

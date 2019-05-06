@@ -1,6 +1,5 @@
 package com.jd.binlake.tower.api;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.jd.binlake.tower.http.HttpUtils;
 import com.jd.binlog.meta.Meta;
 import com.jd.binlog.util.HexUtils;

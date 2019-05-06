@@ -113,28 +113,28 @@
                 <artifactId>curator-framework</artifactId>
                 <version>${curator.version}</version>
             </dependency>
-            <dependency>
-                <groupId>com.jd.jmq</groupId>
-                <artifactId>jmq-client-core</artifactId>
-                <version>2.0.8</version>
+            <!--<dependency>-->
+                <!--<groupId>com.jd.jmq</groupId>-->
+                <!--<artifactId>jmq-client-core</artifactId>-->
+                <!--<version>2.0.8</version>-->
                 <!--<exclusions>-->
                 <!--<exclusion>-->
                 <!--<groupId>org.jboss.netty</groupId>-->
                 <!--<artifactId>netty</artifactId>-->
                 <!--</exclusion>-->
                 <!--</exclusions>-->
-            </dependency>
-            <dependency>
-                <groupId>com.jd.ump</groupId>
-                <artifactId>jannotation</artifactId>
-                <version>${jannotation.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.jd.ump</groupId>
-                        <artifactId>profiler</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
+            <!--</dependency>-->
+            <!--<dependency>-->
+                <!--<groupId>com.jd.ump</groupId>-->
+                <!--<artifactId>jannotation</artifactId>-->
+                <!--<version>${jannotation.version}</version>-->
+                <!--<exclusions>-->
+                    <!--<exclusion>-->
+                        <!--<groupId>com.jd.ump</groupId>-->
+                        <!--<artifactId>profiler</artifactId>-->
+                    <!--</exclusion>-->
+                <!--</exclusions>-->
+            <!--</dependency>-->
 
 
             <dependency>
