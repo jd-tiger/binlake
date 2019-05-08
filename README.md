@@ -53,3 +53,11 @@ BinLake是一个集群化的数据库Binary Log管理、采集和分发系统，
 ## Q&A 
 [Binlake-qa](./doc/binlake-qa.md)  
 
+
+## 交流 
+
+* wx 群   
+    欢迎wx 搜索 binlake 
+
+* mail 邮件  
+    pengaan@163.com  
