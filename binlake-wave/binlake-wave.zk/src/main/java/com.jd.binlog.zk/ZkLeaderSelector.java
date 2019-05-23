@@ -14,6 +14,7 @@ import com.jd.binlog.inter.zk.ILeaderSelector;
 import com.jd.binlog.meta.Http;
 import com.jd.binlog.meta.Meta;
 import com.jd.binlog.meta.MetaInfo;
+import com.jd.binlog.util.ConstUtils;
 import com.jd.binlog.util.LogUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
@@ -26,7 +27,8 @@ import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.retry.RetryNTimes;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -100,12 +102,12 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
 
         this.zkConf = zkConfig;
 
-        this.binlogInfoPath = path + this.zkConf.getBinlogKey();
-        this.counterPath = path + this.zkConf.getCounterPath();
-        this.terminalPath = path + this.zkConf.getTerminalPath();
-        this.candidatePath = path + this.zkConf.getCandidatePath();
-        this.leaderPath = path + this.zkConf.getLeaderPath();
-        this.errorPath = path + this.zkConf.getErrorPath();
+        this.binlogInfoPath = path + ConstUtils.ZK_DYNAMIC_PATH;
+        this.counterPath = path + ConstUtils.ZK_COUNTER_PATH;
+        this.terminalPath = path + ConstUtils.ZK_TERMINAL_PATH;
+        this.candidatePath = path + ConstUtils.ZK_CANDIDATE_PATH;
+        this.leaderPath = path + ConstUtils.ZK_LEADER_PATH;
+        this.errorPath = path + ConstUtils.ZK_ERROR_PATH;
     }
 
     public void startSelector() {

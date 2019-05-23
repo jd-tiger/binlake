@@ -3,6 +3,7 @@ package com.jd.binlake.tower.zk;
 import com.jd.binlake.tower.api.ApiCenter;
 import com.jd.binlog.meta.Meta;
 import com.jd.binlog.meta.MetaUtils;
+import com.jd.binlog.util.ConstUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.api.transaction.CuratorTransaction;
@@ -136,19 +137,19 @@ public class ZkService {
      */
     public Meta.BinlogInfo getBinlogInfo(String host) throws Exception {
         logger.info("getBinlogInfo host: " + host);
-        byte[] data = client.getData().forPath(zkPath + host + MetaUtils.ZK_DYNAMIC_PATH);
+        byte[] data = client.getData().forPath(zkPath + host + ConstUtils.ZK_DYNAMIC_PATH);
         return Meta.BinlogInfo.unmarshalJson(data);
     }
 
     public Meta.Counter getCounter(String host) throws Exception {
         logger.info("getCounter host : " + host);
-        byte[] data = client.getData().forPath(zkPath + host + MetaUtils.ZK_COUNTER_PATH);
+        byte[] data = client.getData().forPath(zkPath + host + ConstUtils.ZK_COUNTER_PATH);
         return Meta.Counter.unmarshalJson(data);
     }
 
     public Meta.Candidate getCandidate(String host) throws Exception {
         logger.info("getCandidate host : " + host);
-        byte[] data = client.getData().forPath(zkPath + host + MetaUtils.ZK_CANDIDATE_PATH);
+        byte[] data = client.getData().forPath(zkPath + host + ConstUtils.ZK_CANDIDATE_PATH);
         return Meta.Candidate.unmarshalJson(data);
     }
 
@@ -195,9 +196,9 @@ public class ZkService {
 
             // other nodes
             Meta.Candidate candidate = new Meta.Candidate().setHost(metaInfo.getCandidate());
-            trxf = trx.create().forPath(path + MetaUtils.ZK_DYNAMIC_PATH, Meta.BinlogInfo.marshalJson(metaInfo.getSlave()))
-                    .and().create().forPath(path + MetaUtils.ZK_COUNTER_PATH, cbts)
-                    .and().create().forPath(path + MetaUtils.ZK_CANDIDATE_PATH, Meta.Candidate.marshalJson(candidate)).and();
+            trxf = trx.create().forPath(path + ConstUtils.ZK_DYNAMIC_PATH, Meta.BinlogInfo.marshalJson(metaInfo.getSlave()))
+                    .and().create().forPath(path + ConstUtils.ZK_COUNTER_PATH, cbts)
+                    .and().create().forPath(path + ConstUtils.ZK_CANDIDATE_PATH, Meta.Candidate.marshalJson(candidate)).and();
         }
 
         // commit transaction final
@@ -239,11 +240,11 @@ public class ZkService {
     public boolean checkChildSENodeExist(String host, int port) throws Exception {
         String key = ApiCenter.makeZNodePath(host, port + "");
         List<String> childList = client.getChildren().forPath(zkPath + key);
-        childList.remove(MetaUtils.ZK_DYNAMIC_PATH.substring(1));
-        childList.remove(MetaUtils.ZK_COUNTER_PATH.substring(1));
-        childList.remove(MetaUtils.ZK_TERMINAL_PATH.substring(1));
-        childList.remove(MetaUtils.ZK_CANDIDATE_PATH.substring(1));
-        childList.remove(MetaUtils.ZK_LEADER_PATH.substring(1));
+        childList.remove(ConstUtils.ZK_DYNAMIC_PATH.substring(1));
+        childList.remove(ConstUtils.ZK_COUNTER_PATH.substring(1));
+        childList.remove(ConstUtils.ZK_TERMINAL_PATH.substring(1));
+        childList.remove(ConstUtils.ZK_CANDIDATE_PATH.substring(1));
+        childList.remove(ConstUtils.ZK_LEADER_PATH.substring(1));
 
         return childList.size() > 0;
     }
@@ -262,7 +263,7 @@ public class ZkService {
         CuratorTransaction tx = client.inTransaction();
 
         tx.setData().forPath(zkPath + key, dbData).and()
-                .setData().forPath(zkPath + key + MetaUtils.ZK_COUNTER_PATH,
+                .setData().forPath(zkPath + key + ConstUtils.ZK_COUNTER_PATH,
                 Meta.Counter.marshalJson(new Meta.Counter())).and()
                 .commit();
     }
@@ -354,7 +355,7 @@ public class ZkService {
      */
     public void setBinlogPosition(String host, int port, String binlogFile, long binlogPosition, String gtidSets) throws Exception {
         logger.debug("set binlog position on : " + host + ":" + port);
-        String binlogPath = zkPath + ApiCenter.makeZNodePath(host, port + "") + MetaUtils.ZK_DYNAMIC_PATH;
+        String binlogPath = zkPath + ApiCenter.makeZNodePath(host, port + "") + ConstUtils.ZK_DYNAMIC_PATH;
 
         byte[] binlogData = client.getData().forPath(binlogPath);
         Meta.BinlogInfo binlogInfo = Meta.BinlogInfo.unmarshalJson(binlogData);
@@ -380,7 +381,7 @@ public class ZkService {
      */
     public void setCandidate(String host, int port, List<String> candidateHosts) throws Exception {
         logger.debug("set node status on : " + host + ":" + port);
-        String candidatePath = zkPath + ApiCenter.makeZNodePath(host, port + "") + MetaUtils.ZK_CANDIDATE_PATH;
+        String candidatePath = zkPath + ApiCenter.makeZNodePath(host, port + "") + ConstUtils.ZK_CANDIDATE_PATH;
         Meta.Candidate candidate = new Meta.Candidate();
         candidate.setHost(candidateHosts);
 
@@ -409,7 +410,7 @@ public class ZkService {
     public void setLeader(String host, int port, String leader) throws Exception {
         logger.debug("set zkLeader " + leader + " for " + host);
         String leaderPath = zkPath +
-                ApiCenter.makeZNodePath(host, port + "") + MetaUtils.ZK_LEADER_PATH;
+                ApiCenter.makeZNodePath(host, port + "") + ConstUtils.ZK_LEADER_PATH;
 
         if (logger.isDebugEnabled()) {
             logger.debug(host + ":" + port + " set leader " + leader);
@@ -443,7 +444,7 @@ public class ZkService {
     public void setTerminal(String host, int port, Meta.Terminal terminal) throws Exception {
         // 添加终止节点
         String terminalPath = zkPath +
-                ApiCenter.makeZNodePath(host, port + "") + MetaUtils.ZK_TERMINAL_PATH;
+                ApiCenter.makeZNodePath(host, port + "") + ConstUtils.ZK_TERMINAL_PATH;
 
         logger.debug("candidate : " + terminal.toString());
 
