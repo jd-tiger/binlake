@@ -26,7 +26,7 @@ public class Producer {
         try {
             cl = Class.forName(name);
         } catch (ClassNotFoundException e) {
-            throw new BinlogException(ErrorCode.ERR_PRODUCER_CLASS_NOT_FOUND, e);
+            throw new BinlogException(ErrorCode.ERR_PRODUCER_CLASS_NOT_FOUND, e, "");
         }
 
         Constructor cons = null;
@@ -34,13 +34,13 @@ public class Producer {
             cons = cl.getConstructor(List.class, String.class);
         } catch (NoSuchMethodException e) {
             throw new BinlogException(ErrorCode.ERR_PRODUCER_CONSTRUCTOR,
-                    "should implement constructor method like JMQProducer(List<Meta.Pair> paras)");
+                   new Exception( "should implement constructor method like JMQProducer(List<Meta.Pair> paras, String topic)"), name);
         }
 
         try {
             return (IProducer) cons.newInstance(paras, topic);
         } catch (Exception e) {
-            throw new BinlogException(ErrorCode.ERR_PRODUCER_ERR_INIT, e);
+            throw new BinlogException(ErrorCode.ERR_PRODUCER_ERR_INIT, e, paras.toString() + ",topic=" + topic);
         }
     }
 }

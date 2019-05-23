@@ -26,6 +26,18 @@ public class ErrorPacket extends MySQLPacket {
         message = mm.readBytes();
     }
 
+    public void read(byte[] data, int pos) {
+        MySQLMessage mm = new MySQLMessage(data);
+        mm.position(pos);
+        fieldCount = mm.read();
+        errno = mm.readUB2();
+        if (mm.hasRemaining() && (mm.read(mm.position()) == SQLSTATE_MARKER)) {
+            mm.read();
+            sqlState = mm.readBytes(5);
+        }
+        message = mm.readBytes();
+    }
+
 
     @Override
     public int calcPacketSize() {

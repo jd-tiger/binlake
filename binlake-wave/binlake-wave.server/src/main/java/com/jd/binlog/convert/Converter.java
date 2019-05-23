@@ -25,7 +25,7 @@ public class Converter {
         try {
             cl = Class.forName(name);
         } catch (ClassNotFoundException e) {
-            throw new BinlogException(ErrorCode.ERR_CONVERTER_CLASS_NOT_FOUND, e);
+            throw new BinlogException(ErrorCode.ERR_CONVERTER_CLASS_NOT_FOUND, e, name);
         }
 
         Constructor cons = null;
@@ -33,13 +33,13 @@ public class Converter {
             cons = cl.getConstructor();
         } catch (NoSuchMethodException e) {
             throw new BinlogException(ErrorCode.ERR_CONVERTER_CONSTRUCTOR,
-                    "should implement interface IConvert");
+                    e, "");
         }
 
         try {
             return (IConvert) cons.newInstance();
         } catch (Exception e) {
-            throw new BinlogException(ErrorCode.ERR_CONVERTER_INIT, e);
+            throw new BinlogException(ErrorCode.ERR_CONVERTER_INIT, e, name);
         }
     }
 

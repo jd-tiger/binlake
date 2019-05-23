@@ -45,7 +45,7 @@ public class TableRowsParser {
         TableMapLogEvent table = event.getTable();
         if (table == null) {
             // tableId对应的记录不存在
-            throw new BinlogException(ErrorCode.PARSER_ERROR, "not found tableId:" + event.getTableId());
+            throw new BinlogException(ErrorCode.WARN_MySQL_ROWEVENT_PARSE, new Exception("not found tableId:" + event.getTableId()), msg.getBinlogFile() + ":" + msg.getLogPosition());
         }
 
         msg.initMeta();

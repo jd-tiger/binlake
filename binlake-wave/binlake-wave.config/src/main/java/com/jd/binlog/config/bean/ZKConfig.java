@@ -13,6 +13,7 @@ public class ZKConfig implements Validation {
     private String terminalPath = "/terminal";
     private String candidatePath = "/candidate";
     private String leaderPath = "/leader";
+    private String errorPath = "/error";
     private int retryTimes = 10;
     private int sleepMsBetweenRetries = 1000;
 
@@ -50,6 +51,10 @@ public class ZKConfig implements Validation {
 
     public int getSleepMsBetweenRetries() {
         return sleepMsBetweenRetries;
+    }
+
+    public String getErrorPath() {
+        return errorPath;
     }
 
     public void validate() throws IllegalArgumentException {

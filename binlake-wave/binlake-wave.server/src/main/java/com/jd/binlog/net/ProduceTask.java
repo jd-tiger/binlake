@@ -1,15 +1,15 @@
 package com.jd.binlog.net;
 
+import com.jd.binlog.exception.BinlogException;
+import com.jd.binlog.exception.ErrorCode;
 import com.jd.binlog.inter.produce.IProducer;
 import com.jd.binlog.inter.rule.IRule;
-import com.jd.binlog.inter.work.IBinlogWorker;
 import com.jd.binlog.performance.PerformanceUtils;
 import com.jd.binlog.util.LogUtils;
 import com.jd.binlog.util.RetryUtils;
 import com.jd.binlog.util.TimeUtils;
 
 import java.io.IOException;
-import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -54,11 +54,11 @@ public class ProduceTask extends Thread {
                     if (!rv.logPos.isCommit()) { // 非commit 事件
                         rv.worker.removeLogPosition(rv.logPos);
                     }
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     LogUtils.error.error("producer error ", e);
 
                     // 生产出现异常 当做io异常处理 增加重试次数
-                    rv.worker.handleIOException(new IOException(e.getLocalizedMessage()));
+                    rv.worker.handleException(new BinlogException(ErrorCode.WARN_PRODUCE_ERROR, e, rv.id + "|" + new String(rv.key)));
                 } finally {
                     PerformanceUtils.perform(PerformanceUtils.SEND_DELAY_KEY, rv.logPos.getWhen());
                     PerformanceUtils.perform(PerformanceUtils.PRODUCE_DELAY_KEY, start, TimeUtils.time());

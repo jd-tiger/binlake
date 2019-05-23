@@ -6,6 +6,7 @@ import com.jd.binlog.config.bean.HttpConfig;
 import com.jd.binlog.config.bean.ServerConfig;
 import com.jd.binlog.config.bean.ZKConfig;
 import com.jd.binlog.dbsync.LogPosition;
+import com.jd.binlog.exception.BinlogException;
 import com.jd.binlog.http.HttpServiceClient;
 import com.jd.binlog.inter.work.IBinlogWorker;
 import com.jd.binlog.inter.work.IWorkInitializer;
@@ -47,6 +48,7 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
     private String terminalPath;
     private String candidatePath;
     private String leaderPath;
+    private String errorPath;
     private String key;
     private MetaInfo metaInfo;
 
@@ -103,6 +105,7 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
         this.terminalPath = path + this.zkConf.getTerminalPath();
         this.candidatePath = path + this.zkConf.getCandidatePath();
         this.leaderPath = path + this.zkConf.getLeaderPath();
+        this.errorPath = path + this.zkConf.getErrorPath();
     }
 
     public void startSelector() {
@@ -726,7 +729,14 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
         CuratorFramework client = this.client;
 
         if (client != null) {
-            client.setData().forPath(counterPath, Meta.Counter.marshalJson(metaInfo.getCounter()));
+            CuratorTransaction trx = client.inTransaction();
+            CuratorTransactionFinal trf = trx.setData().forPath(counterPath, Meta.Counter.marshalJson(metaInfo.getCounter())).and();
+
+            Meta.Error err = null;
+            if ((err = metaInfo.getError()) != null) {
+                trf = trf.setData().forPath(errorPath, Meta.Error.marshalJson(err)).and();
+            }
+            trf.commit();
         }
     }
 
@@ -757,7 +767,12 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
         this.metaInfo = null;
     }
 
-    public void updateZNodesState(Meta.Terminal terminal, MetaInfo metaInfo) throws Exception {
+    /**
+     * @param terminal
+     * @param metaInfo
+     * @throws BinlogException
+     */
+    public void updateZNodesState(Meta.Terminal terminal, MetaInfo metaInfo) throws BinlogException {
         CuratorFramework client = this.client;
         List<String> newHosts = terminal.getNewHost();
 

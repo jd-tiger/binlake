@@ -22,6 +22,7 @@ public class MetaInfo {
     private Meta.Counter counter;
     private Meta.Terminal terminal;
     private Meta.Candidate candidate;
+    private Meta.Error error;
 
     public MetaInfo(Meta.DbInfo dbInfo, Meta.BinlogInfo binlogInfo) {
         this.dbInfo = dbInfo;
@@ -69,6 +70,10 @@ public class MetaInfo {
         this.terminal = terminal;
     }
 
+    public void setError(Meta.Error error) {
+        this.error = error;
+    }
+
     public int getPort() {
         return dbInfo.getPort();
     }
@@ -103,6 +108,10 @@ public class MetaInfo {
 
     public Meta.BinlogInfo getBinlogInfo() {
         return binlogInfo;
+    }
+
+    public Meta.Error getError() {
+        return error;
     }
 
     public void setBinlogInfo(Meta.BinlogInfo binlogInfo) {
@@ -161,6 +170,11 @@ public class MetaInfo {
     public void addSessionRetryTimes() {
         LogUtils.info.info(host + " addSessionRetryTimes " + retryTimes);
         retryTimes++;
+    }
+
+    public void fillRetryTimes() {
+        LogUtils.info.info(host + " addSessionRetryTimes " + retryTimes);
+        retryTimes+=100;
     }
 
     public void addSessionKillTimes() {

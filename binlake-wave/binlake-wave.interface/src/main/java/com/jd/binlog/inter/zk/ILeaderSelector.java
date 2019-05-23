@@ -1,5 +1,6 @@
 package com.jd.binlog.inter.zk;
 
+import com.jd.binlog.exception.BinlogException;
 import com.jd.binlog.inter.work.IBinlogWorker;
 import com.jd.binlog.meta.Http;
 import com.jd.binlog.meta.Meta;
@@ -50,7 +51,7 @@ public interface ILeaderSelector {
     /**
      * update znode state
      */
-    void updateZNodesState(Meta.Terminal terminal, MetaInfo metaInfo) throws Exception;
+    void updateZNodesState(Meta.Terminal terminal, MetaInfo metaInfo) throws BinlogException;
 
     /**
      * update counter

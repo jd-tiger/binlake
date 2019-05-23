@@ -1,6 +1,7 @@
 package com.jd.binlog.inter.work;
 
 import com.jd.binlog.dbsync.LogPosition;
+import com.jd.binlog.exception.BinlogException;
 
 import java.io.IOException;
 import java.util.Map;
@@ -69,7 +70,7 @@ public interface IBinlogWorker {
      *
      * @param exp
      */
-    void handleIOException(IOException exp); // handle io exception
+    void handleException(BinlogException exp); // handle binlog exception
 
     /**
      * 处理 error 异常

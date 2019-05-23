@@ -5,6 +5,8 @@ import com.jd.binlog.dbsync.event.mariadb.AnnotateRowsEvent;
 import com.jd.binlog.dbsync.event.mariadb.BinlogCheckPointLogEvent;
 import com.jd.binlog.dbsync.event.mariadb.MariaGtidListLogEvent;
 import com.jd.binlog.dbsync.event.mariadb.MariaGtidLogEvent;
+import com.jd.binlog.exception.BinlogException;
+import com.jd.binlog.exception.ErrorCode;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -13,35 +15,35 @@ import java.util.BitSet;
 
 /**
  * Implements a binary-log decoder.
- * 
+ *
  * <pre>
  * LogDecoder decoder = new LogDecoder();
  * decoder.handle(...);
- * 
+ *
  * LogEvent event;
  * do
  * {
  *     event = decoder.decode(buffer, context);
- * 
+ *
  *     // process log event.
  * }
  * while (event != null);
  * // no more events in buffer.
  * </pre>
- * 
+ *
  * @author <a href="mailto:changyuan.lh@taobao.com">Changyuan.lh</a>
  * @version 1.0
  */
 public final class LogDecoder {
 
-    protected static final Log logger    = LogFactory.getLog(LogDecoder.class);
+    protected static final Log logger = LogFactory.getLog(LogDecoder.class);
 
-    protected final BitSet     handleSet = new BitSet(LogEvent.ENUM_END_EVENT);
+    protected final BitSet handleSet = new BitSet(LogEvent.ENUM_END_EVENT);
 
-    public LogDecoder(){
+    public LogDecoder() {
     }
 
-    public LogDecoder(final int fromIndex, final int toIndex){
+    public LogDecoder(final int fromIndex, final int toIndex) {
         handleSet.set(fromIndex, toIndex);
     }
 
@@ -55,11 +57,11 @@ public final class LogDecoder {
 
     /**
      * Decoding an event from binary-log buffer.
-     * 
+     *
      * @return <code>UknownLogEvent</code> if event type is unknown or skipped,
      * <code>null</code> if buffer is not including a full event.
      */
-    public LogEvent decode(LogBuffer buffer, LogContext context) throws IOException {
+    public LogEvent decode(LogBuffer buffer, LogContext context) throws BinlogException {
         final int limit = buffer.limit();
 
         if (limit >= FormatDescriptionLogEvent.LOG_EVENT_HEADER_LEN) {
@@ -77,8 +79,8 @@ public final class LogDecoder {
                         event = decode(buffer, header, context);
                     } catch (IOException e) {
                         if (logger.isWarnEnabled()) logger.warn("Decoding " + LogEvent.getTypeName(header.getType())
-                                                                + " failed from: " + context.getLogPosition(), e);
-                        throw e;
+                                + " failed from: " + context.getLogPosition(), e);
+                        throw new BinlogException(ErrorCode.ERR_DUMP_BYTE_DECODE, e, context.getLogPosition().toString());
                     } finally {
                         buffer.limit(limit); /* Restore limit */
                     }
@@ -100,7 +102,7 @@ public final class LogDecoder {
 
     /**
      * Deserialize an event from buffer.
-     * 
+     *
      * @return <code>UknownLogEvent</code> if event type is unknown or skipped.
      */
     public static LogEvent decode(LogBuffer buffer, LogHeader header, LogContext context) throws IOException {
@@ -181,10 +183,9 @@ public final class LogDecoder {
                 logPosition.position = header.getLogPos();
                 return event;
             }
-            case LogEvent.SLAVE_EVENT: /* can never happen (unused event) */
-            {
+            case LogEvent.SLAVE_EVENT: /* can never happen (unused event) */ {
                 if (logger.isWarnEnabled()) logger.warn("Skipping unsupported SLAVE_EVENT from: "
-                                                        + context.getLogPosition());
+                        + context.getLogPosition());
                 break;
             }
             case LogEvent.CREATE_FILE_EVENT: {
@@ -252,21 +253,21 @@ public final class LogDecoder {
             }
             case LogEvent.PRE_GA_WRITE_ROWS_EVENT: {
                 if (logger.isWarnEnabled()) logger.warn("Skipping unsupported PRE_GA_WRITE_ROWS_EVENT from: "
-                                                        + context.getLogPosition());
+                        + context.getLogPosition());
                 // ev = new Write_rows_log_event_old(buf, event_len,
                 // description_event);
                 break;
             }
             case LogEvent.PRE_GA_UPDATE_ROWS_EVENT: {
                 if (logger.isWarnEnabled()) logger.warn("Skipping unsupported PRE_GA_UPDATE_ROWS_EVENT from: "
-                                                        + context.getLogPosition());
+                        + context.getLogPosition());
                 // ev = new Update_rows_log_event_old(buf, event_len,
                 // description_event);
                 break;
             }
             case LogEvent.PRE_GA_DELETE_ROWS_EVENT: {
                 if (logger.isWarnEnabled()) logger.warn("Skipping unsupported PRE_GA_DELETE_ROWS_EVENT from: "
-                                                        + context.getLogPosition());
+                        + context.getLogPosition());
                 // ev = new Delete_rows_log_event_old(buf, event_len,
                 // description_event);
                 break;
@@ -383,8 +384,8 @@ public final class LogDecoder {
                     return event;
                 } else {
                     if (logger.isWarnEnabled()) logger.warn("Skipping unrecognized binlog event "
-                                                            + LogEvent.getTypeName(header.getType()) + " from: "
-                                                            + context.getLogPosition());
+                            + LogEvent.getTypeName(header.getType()) + " from: "
+                            + context.getLogPosition());
                 }
         }
 

@@ -3,6 +3,7 @@ package com.jd.binlog.meta;
 import com.jd.binlog.util.GzipUtil;
 import org.codehaus.jackson.map.ObjectMapper;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -253,7 +254,7 @@ public class Meta {
     }
 
     /**
-     counter is save retry times
+     * counter is save retry times
      **/
     public static class Counter {
         private long retryTimes;    //times that Wave Server try to connect MySQL server
@@ -283,6 +284,48 @@ public class Meta {
 
         public static Counter unmarshalJson(byte[] json) throws Exception {
             return new ObjectMapper().readValue(GzipUtil.uncompress(json), Counter.class);
+        }
+    }
+
+    /**
+     * error node to remember error information
+     */
+    public static class Error {
+        private int code;
+        private byte[] msg;
+
+        public int getCode() {
+            return code;
+        }
+
+        public Error setCode(int code) {
+            this.code = code;
+            return this;
+        }
+
+        public byte[] getMsg() {
+            return msg;
+        }
+
+        public Error setMsg(byte[] msg) {
+            this.msg = msg;
+            return this;
+        }
+
+        public static byte[] marshalJson(Error err) throws Exception {
+            return GzipUtil.compress(new ObjectMapper().writeValueAsBytes(err));
+        }
+
+        public static Error unmarshalJson(byte[] json) throws Exception {
+            return new ObjectMapper().readValue(GzipUtil.uncompress(json), Error.class);
+        }
+
+        @Override
+        public String toString() {
+            return "Error{" +
+                    "code=" + code +
+                    ", msg=" + Arrays.toString(msg) +
+                    '}';
         }
     }
 
@@ -431,12 +474,11 @@ public class Meta {
     }
 
     /**
-     topic rules map :
-
-     one topic in relation to many rules
-
-     one rule in relation to many topic
-
+     * topic rules map :
+     * <p>
+     * one topic in relation to many rules
+     * <p>
+     * one rule in relation to many topic
      **/
     public static class MQRule {
         private String topic;               //mq topic
@@ -626,6 +668,14 @@ public class Meta {
         public void setValue(String value) {
             this.value = value;
         }
+
+        @Override
+        public String toString() {
+            return "Pair{" +
+                    "key='" + key + '\'' +
+                    ", value='" + value + '\'' +
+                    '}';
+        }
     }
 
     public enum NodeState {
@@ -633,7 +683,9 @@ public class Meta {
         OFFLINE;
     }
 
-    /** 事件类型 **/
+    /**
+     * 事件类型
+     **/
     public enum EventType {
         OTHER,
         INSERT,
@@ -649,7 +701,9 @@ public class Meta {
         DINDEX;
     }
 
-    /** 消息顺序类型 **/
+    /**
+     * 消息顺序类型
+     **/
     public enum OrderType {
         NO_ORDER,           //完全乱序 无规则
         BUSINESS_KEY_ORDER, //业务主键级别消息顺序 partition 对应多个
@@ -659,13 +713,17 @@ public class Meta {
         INSTANCE_ORDER;     //实例级别消息顺序 broker 对应一个
     }
 
-    /** 存储类型 **/
+    /**
+     * 存储类型
+     **/
     public enum StorageType {
         MQ_STORAGE, //消息队列 规则
         KV_STORAGE; //KV storage
     }
 
-    /** zookeeper 信息结构体 **/
+    /**
+     * zookeeper 信息结构体
+     **/
     public static class ZK {
         private String servers; //zk servers地址
         private String path;    //监听的根路径
@@ -689,7 +747,9 @@ public class Meta {
         }
     }
 
-    /** MetaData 页面与管理端交互用的元数据信息 **/
+    /**
+     * MetaData 页面与管理端交互用的元数据信息
+     **/
     public static class MetaData {
         private DbInfo dbInfo;
         private BinlogInfo slave;

@@ -55,7 +55,7 @@ public class MySQLExecutor {
         }
     }
 
-    public void setConnCfg(String slaveUUID) throws IOException {
+    public void setConnCfg(String slaveUUID) throws BinlogException {
         MySQLUpdates upds = new MySQLUpdates(slaveUUID);
         update(upds.getSlaveUuid());
         update(upds.getNetReadTimeout());
@@ -106,8 +106,8 @@ public class MySQLExecutor {
         if (body[0] == ErrorPacket.FIELD_COUNT) {
             ErrorPacket error = new ErrorPacket();
             error.read(body);
-            if (error.errno == ErrorCode.ERR_BINLOG_FILE_NOT_EXIST.getErrorCode()) {
-                throw new BinlogException(ErrorCode.ERR_BINLOG_FILE_NOT_EXIST, new String(error.message));
+            if (error.errno == 1220) {
+                throw new BinlogException(ErrorCode.WARN_QUERY_NO_FILE, new Exception(new String(error.message)), sql);
             }
             throw new IOException(new String(error.message));
         }
@@ -137,26 +137,31 @@ public class MySQLExecutor {
         return resultSet;
     }
 
-    public void update(String sql) throws IOException {
+    public void update(String sql) throws BinlogException {
         logger.debug("query : " + sql);
         CommandPacket cmd = new CommandPacket();
         cmd.packetId = 0;
         cmd.command = MySQLPacket.COM_QUERY;
-        cmd.arg = sql.getBytes(CharsetUtils.getCharset(CHARSET_NUMBER));
-        cmd.write(channel.socket().getOutputStream());
-        channel.socket().getOutputStream().flush();
-        byte[] body = readNextPacket();
+        StringBuilder msg = new StringBuilder();
+        try {
+            cmd.arg = sql.getBytes(CharsetUtils.getCharset(CHARSET_NUMBER));
+            cmd.write(channel.socket().getOutputStream());
+            channel.socket().getOutputStream().flush();
+            byte[] body = readNextPacket();
 
-        if (body[0] < 0) {
-            ErrorPacket packet = new ErrorPacket();
-            packet.read(body);
-            throw new IOException(new String(packet.message) + "\n with command: " + sql);
-        }
+            if (body[0] < 0) {
+                ErrorPacket packet = new ErrorPacket();
+                packet.read(body);
+                msg.append(new String(packet.message)).append("\n with command: ").append(sql);
+            }
 
-        if (body[0] != OKPacket.FIELD_COUNT) {
-            throw new IOException("update sql : " + sql + " with not OK return");
+            if (body[0] != OKPacket.FIELD_COUNT) {
+                msg.append(sql).append(" with not OK return");
+            }
+            // update success without error
+        } catch (Throwable exp) {
+            throw new BinlogException(ErrorCode.WARN_MySQL_SET, exp, msg.toString());
         }
-        // update success without error
     }
 
     protected byte[] readNextPacket() throws IOException {

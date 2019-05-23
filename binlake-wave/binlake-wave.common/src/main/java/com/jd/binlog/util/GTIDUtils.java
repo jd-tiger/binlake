@@ -1,5 +1,8 @@
 package com.jd.binlog.util;
 
+import com.jd.binlog.exception.BinlogException;
+import com.jd.binlog.exception.ErrorCode;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,7 +39,7 @@ public class GTIDUtils {
      * </p>
      * @throws Exception
      */
-    public static int compare(String src, String dst) throws Exception {
+    public static int compare(String src, String dst) throws BinlogException {
         int rs1 = compare0(src, dst) ^ RANGE_EQUAL; // 去除 相等的集合 不影响结果
         int rs2 = compare0(dst, src) ^ RANGE_EQUAL; // 去除 相等的集合 不影响结果
 
@@ -56,14 +59,14 @@ public class GTIDUtils {
         }
 
         if (rs1 == RANGE_INTERSECT || rs2 == RANGE_INTERSECT) {
-            throw new Exception("gtid 之间存在有交集无法判断两者大小");
+            throw new BinlogException(ErrorCode.ERR_GTID_COMPARE, new Exception("gtid 之间存在有交集无法判断两者大小"), "src gtid " + src + "<=> dest gtid " + dst);
         }
 
         if (rs1 == RANGE_NO_INTERSECT || rs2 == RANGE_NO_INTERSECT) {
-            throw new Exception("gtid 不存在交集 无法判断两者大小");
+            throw new BinlogException(ErrorCode.ERR_GTID_COMPARE, new Exception("gtid 不存在交集 无法判断两者大小"), "src gtid " + src + "<=> dest gtid " + dst);
         }
 
-        throw new Exception("gtid 集合之间多种关系并存 无法判断两者大小 ");
+        throw new BinlogException(ErrorCode.ERR_GTID_COMPARE, new Exception("gtid 集合之间多种关系并存 无法判断两者大小 "), "src gtid " + src + "<=> dest gtid " + dst);
     }
 
     /**
@@ -83,7 +86,7 @@ public class GTIDUtils {
      * @param dest
      * @return
      */
-    private static int compare0(String src, String dest) throws Exception {
+    private static int compare0(String src, String dest) throws BinlogException {
         Map<String, ArrayList<Long[]>> srcM = toMap(src);
         Map<String, ArrayList<Long[]>> destM = toMap(dest);
 
@@ -129,13 +132,13 @@ public class GTIDUtils {
 
         if (srcM.size() > destM.size()) {
             if (rst != RANGE_CONTAINING) { // src 不包含 dest gtid
-                throw new Exception("由于 " + src + " gtid-set 长度 > " + dest + " gtid-set 但是前者gtid集合不包含后者");
+                throw new BinlogException(ErrorCode.ERR_GTID_COMPARE, new Exception("由于 " + src + " gtid-set 长度 > " + dest + " gtid-set 但是前者gtid集合不包含后者"), "src gtid " + srcM + "<=> dst gtid " + destM);
             }
         }
 
         if (srcM.size() < destM.size()) {
             if (rst != RANGE_CONTAINED) { // src 不包含于 dest gtid
-                throw new Exception("由于 " + src + " gtid-set 长度 < " + dest + " gtid-set, 但是前者gtid集合不包含于后者");
+                throw new BinlogException(ErrorCode.ERR_GTID_COMPARE, new Exception("由于 " + src + " gtid-set 长度 < " + dest + " gtid-set, 但是前者gtid集合不包含于后者"), "src gtid " + srcM + "<=> dst gtid " + destM);
             }
         }
 

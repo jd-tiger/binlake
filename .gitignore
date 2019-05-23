@@ -4,7 +4,7 @@ target
 .classpath
 .settings
 .project
-.log
+log*
 .test
 ./binlake-wave/binlake-wave.example
 tower
