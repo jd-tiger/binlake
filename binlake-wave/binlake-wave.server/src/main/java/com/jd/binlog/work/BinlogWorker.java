@@ -1,6 +1,8 @@
 package com.jd.binlog.work;
 
-import com.jd.binlog.alarm.RetryTimesAlarmUtils;
+import com.jd.binlog.alarm.AlarmUtils;
+import com.jd.binlog.alarm.utils.JDMailParas;
+import com.jd.binlog.alarm.utils.JDPhoneParas;
 import com.jd.binlog.conn.MySQLConnector;
 import com.jd.binlog.conn.MySQLExecutor;
 import com.jd.binlog.convert.Converter;
@@ -12,6 +14,7 @@ import com.jd.binlog.dump.DumpType;
 import com.jd.binlog.exception.BinlogException;
 import com.jd.binlog.exception.ErrorCode;
 import com.jd.binlog.filter.aviater.AviaterRegexFilter;
+import com.jd.binlog.inter.alarm.IAlarm;
 import com.jd.binlog.inter.msg.IConvert;
 import com.jd.binlog.inter.msg.IRepartition;
 import com.jd.binlog.inter.produce.IProducer;
@@ -551,25 +554,31 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
         MetaInfo metaInfo = this.metaInfo;
         if (success && leader != null && metaInfo != null) {
             // get meta info
+            byte[] errMsg = exp.message(metaInfo.getBinlogInfo().getLeader(), host, metaInfo.getHost());
             Meta.Error err = new Meta.Error().
                     setCode(exp.getErrorCode().errorCode).
-                    setMsg(exp.message(metaInfo.getBinlogInfo().getLeader(), host));
+                    setMsg(errMsg);
 
             LogUtils.warn.warn("add session retry times");
             switch (exp.getErrorCode().according()) {
                 case Retry:
                     metaInfo.addSessionRetryTimes();
                     metaInfo.setError(err);
+                    // 重试报警
+                    AlarmUtils.mail(metaInfo.getRetryTimes(), metaInfo.getAlarm().getRetry(),
+                            JDMailParas.mailParas(
+                                    MetaInfo.mailTo(metaInfo.getAlarm().getUsers()),
+                                    String.format(IAlarm.MailSubTemplate, host, metaInfo.getHost()),
+                                    errMsg));
                     break;
                 case Stop:
                     metaInfo.fillRetryTimes();
                     metaInfo.setError(err);
+                    // 系统报警
+                    AlarmUtils.phone(JDPhoneParas.phoneParas(errMsg));
+                    break;
             }
 
-            RetryTimesAlarmUtils.alarm(metaInfo.getRetryTimes(),
-                    "MySQL instance:" + metaInfo.getHost() + ":" + metaInfo.getPort()
-                            + ", with retry times " + metaInfo.getRetryTimes() + ", with pre-leader "
-                            + metaInfo.getBinlogInfo().getPreLeader() + ", current wave host " + host);
 
             try {
                 leader.updateCounter(metaInfo);

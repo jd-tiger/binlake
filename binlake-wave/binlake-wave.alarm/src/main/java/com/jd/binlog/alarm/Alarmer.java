@@ -2,8 +2,12 @@ package com.jd.binlog.alarm;
 
 import com.jd.binlog.inter.alarm.IAlarm;
 import com.jd.binlog.util.HttpUtils;
+import com.jd.binlog.util.JsonUtils;
 import com.jd.binlog.util.LogUtils;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 
+import java.io.UnsupportedEncodingException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -14,14 +18,19 @@ import java.util.Map;
  */
 public class Alarmer implements IAlarm {
 
-    @Override
-    public void alarm(String msg) {
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("text", msg);
+    protected String url;
+    protected String token;
 
-        data.put("mobile_nums", phones.toArray());
+    @Override
+    public void alarm(Map<String, Object> data) throws UnsupportedEncodingException {
+        HttpPost post = new HttpPost(url);
+        StringEntity params = new StringEntity(JsonUtils.ObjtoJson(data));
+        post.addHeader("content-type", "application/json");
+        post.setHeader("token", token);
+        post.setEntity(params);
+
         try {
-            HttpUtils.jsonRequest(url.get(), token.get(), data);
+            HttpUtils.jsonRequest(post);
         } catch (Exception e) {
             LogUtils.error.error("alarm " + url + " error", e);
         }

@@ -2,6 +2,7 @@ package com.jd.binlog.zk;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.jd.binlog.alarm.AlarmUtils;
+import com.jd.binlog.alarm.utils.JDPhoneParas;
 import com.jd.binlog.config.bean.HttpConfig;
 import com.jd.binlog.config.bean.ServerConfig;
 import com.jd.binlog.config.bean.ZKConfig;
@@ -12,7 +13,6 @@ import com.jd.binlog.inter.zk.IZkClient;
 import com.jd.binlog.meta.Http;
 import com.jd.binlog.meta.Meta;
 import com.jd.binlog.meta.MetaInfo;
-import com.jd.binlog.meta.MetaUtils;
 import com.jd.binlog.util.ConstUtils;
 import com.jd.binlog.util.LogUtils;
 import org.apache.curator.framework.CuratorFramework;
@@ -73,6 +73,11 @@ public class ZkClient implements IZkClient {
 
         // 初始化 zk 监听路径
         createMetaPathIfNotExists();
+
+        // init alarm utils
+        String p = this.zkConfig.getMetaPath().substring(this.zkConfig.getMetaPath().indexOf("/"));
+        Meta.Admin admin = Meta.Admin.unmarshalJson(client.getData().forPath(p));
+        AlarmUtils.init(admin.getMailParas(), admin.getAdminMails(), admin.getPhoneParas(), admin.getAdminPhones());
 
         addConnectionStateListener(this.client, this.zkConfig);
         addChildrenListener(this.client, this.zkConfig);
@@ -411,7 +416,7 @@ public class ZkClient implements IZkClient {
         } else {
             String errMsg = "can't add ephemeral node because leader have changed for path " + dbp + " or because the meta was updated by manager";
             LogUtils.error.error(errMsg);
-            AlarmUtils.alarm(host + "-getAliveCandidate" + " Binlake alarm: " + "mysql:" + req.getKey() + " and wave:" + host + " " + errMsg);
+            AlarmUtils.phone(JDPhoneParas.phoneParas(String.format("wave %s add ephemeral node for %s failure: %s", host, req.getKey()).getBytes()));
             throw new Exception(errMsg);
         }
     }

@@ -11,6 +11,7 @@ import org.apache.http.util.EntityUtils;
 import org.codehaus.jackson.JsonNode;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -24,17 +25,21 @@ import java.util.Set;
 public class HttpUtils {
     private static final String CHARSET = "UTF-8";
 
-    public static JsonNode jsonRequest(String url, String token, Map<String, Object> data) throws Exception {
+    /***
+     *              String url, String token, Map<String, Object> data
+     *             StringEntity params = new StringEntity(JsonUtils.ObjtoJson(data));
+     *             post.addHeader("content-type", "application/json");
+     *             post.setHeader("token", token);
+     *             post.setEntity(params);
+     * @param post
+     * @return
+     * @throws Exception
+     */
+    public static JsonNode jsonRequest(HttpPost post) throws Exception {
         CloseableHttpClient client = null;
         CloseableHttpResponse rsp = null;
         try {
             client = HttpClientBuilder.create().build();
-            HttpPost post = new HttpPost(url);
-            StringEntity params = new StringEntity(JsonUtils.ObjtoJson(data));
-            post.addHeader("content-type", "application/json");
-            post.setHeader("token", token);
-            post.setEntity(params);
-
             rsp = client.execute(post);
 
             if (rsp.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
@@ -48,7 +53,7 @@ public class HttpUtils {
             }
             return null;
         } catch (Throwable e) {
-            LogUtils.error.error("request to url " + url + " error", e);
+            LogUtils.error.error("request to url error", e);
             if (rsp != null) {
                 try {
                     rsp.close();
@@ -66,7 +71,7 @@ public class HttpUtils {
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws UnsupportedEncodingException {
         String phones = "18515819096,15726816160";
         String token = "J1itu2OlRF2ThgWYK8yPcQ==";
         String url = "http://api.dbs.jd.com:9000/godbs/sendText/";
@@ -82,8 +87,14 @@ public class HttpUtils {
 
         data.put("mobile_nums", phs.toArray());
 
+        HttpPost post = new HttpPost(url);
+        StringEntity params = new StringEntity(JsonUtils.ObjtoJson(data));
+        post.addHeader("content-type", "application/json");
+        post.setHeader("token", token);
+        post.setEntity(params);
+
         try {
-            HttpUtils.jsonRequest(url, token, data);
+            HttpUtils.jsonRequest(post);
         } catch (Exception e) {
             e.printStackTrace();
         }

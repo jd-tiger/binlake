@@ -1,6 +1,8 @@
 package com.jd.binlog.inter.alarm;
 
+import java.io.UnsupportedEncodingException;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -11,10 +13,20 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author pengan
  */
 public interface IAlarm {
-    AtomicLong retryTimes = new AtomicLong();
-    Set<String> phones = new LinkedHashSet<>();
-    AtomicReference<String> token = new AtomicReference<>();
-    AtomicReference<String> url = new AtomicReference<>();
+    /**
+     * 邮件主题模板
+     */
+    String MailSubTemplate = "BinLake wave %s dump MySQL实例%s 异常";
 
-    void alarm(String msg);
+    /***
+     * url
+     */
+    String KEYWORD_URL = "url";
+
+    /***
+     * token key word
+     */
+    String KEYWORD_TOKEN = "token";
+
+    void alarm(Map<String, Object> data) throws UnsupportedEncodingException;
 }

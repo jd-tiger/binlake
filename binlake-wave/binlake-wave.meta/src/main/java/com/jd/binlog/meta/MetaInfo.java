@@ -2,14 +2,16 @@ package com.jd.binlog.meta;
 
 import com.jd.binlog.util.LogUtils;
 
+import java.util.List;
+
 /**
  * Created by pengan on 16-12-15.
  */
 public class MetaInfo {
     private String host;
     private volatile String instanceIp;
-    private volatile long killedTimes;
-    private volatile long retryTimes;
+    private volatile int killedTimes;
+    private volatile int retryTimes;
     private volatile long leaderVersion;
     private volatile String leader;
     private volatile String preLeader = "";
@@ -23,6 +25,7 @@ public class MetaInfo {
     private Meta.Terminal terminal;
     private Meta.Candidate candidate;
     private Meta.Error error;
+    private Meta.Alarm alarm;
 
     public MetaInfo(Meta.DbInfo dbInfo, Meta.BinlogInfo binlogInfo) {
         this.dbInfo = dbInfo;
@@ -30,6 +33,11 @@ public class MetaInfo {
         this.leaderVersion = binlogInfo.getLeaderVersion();
         this.leader = binlogInfo.getLeader();
         this.instanceIp = binlogInfo.getInstanceIp();
+    }
+
+    public MetaInfo(Meta.DbInfo dbInfo, Meta.BinlogInfo binlogInfo, Meta.Counter counter, Meta.Alarm alarm) {
+        this(dbInfo, binlogInfo, counter);
+        this.alarm = alarm;
     }
 
     public MetaInfo(Meta.DbInfo dbInfo, Meta.BinlogInfo binlogInfo, Meta.Counter counter) {
@@ -114,6 +122,10 @@ public class MetaInfo {
         return error;
     }
 
+    public Meta.Alarm getAlarm() {
+        return alarm;
+    }
+
     public void setBinlogInfo(Meta.BinlogInfo binlogInfo) {
         this.binlogInfo = binlogInfo;
     }
@@ -122,7 +134,7 @@ public class MetaInfo {
         this.dbInfo = dbInfo;
     }
 
-    public long getRetryTimes() {
+    public int getRetryTimes() {
         return counter.getRetryTimes();
     }
 
@@ -174,7 +186,7 @@ public class MetaInfo {
 
     public void fillRetryTimes() {
         LogUtils.info.info(host + " addSessionRetryTimes " + retryTimes);
-        retryTimes+=100;
+        retryTimes += 100;
     }
 
     public void addSessionKillTimes() {
@@ -196,6 +208,40 @@ public class MetaInfo {
         LogUtils.debug.debug("setLeader");
         this.leader = leader;
     }
+
+    /**
+     * mail to users
+     *
+     * @param users
+     * @return
+     */
+    public static String[] mailTo(List<Meta.User> users) {
+        String[] to = new String[users.size()];
+
+        for (int i = 0; i < to.length; i++) {
+            to[i] = users.get(i).getEmail();
+        }
+
+        return to;
+    }
+
+
+    /***
+     * phone to users
+     *
+     * @param users
+     * @return
+     */
+    public static String[] phoneTo(List<Meta.User> users) {
+        String[] to = new String[users.size()];
+
+        for (int i = 0; i < to.length; i++) {
+            to[i] = users.get(i).getPhone();
+        }
+
+        return to;
+    }
+
 
     public void setPreLeader(String preLeader) {
         this.preLeader = preLeader;

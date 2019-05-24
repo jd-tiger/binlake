@@ -30,4 +30,9 @@ public interface ConstUtils {
      * error path to store error and error info
      */
     String ZK_ERROR_PATH = "/error";
+
+    /***
+     * alarm path for user including phone and email
+     */
+    String ZK_ALARM_PATH = "/alarm";
 }

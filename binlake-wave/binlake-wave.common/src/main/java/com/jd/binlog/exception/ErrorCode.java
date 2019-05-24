@@ -23,8 +23,11 @@ public enum ErrorCode {
     WARN_MySQL_ROWEVENT_PARSE(10005, "wave %s on MySQL %s parse %s error %s"), // 解析MySQL sql 语句异常 %s: offset
     WARN_MySQL_DDL_PARSE(10005, "wave %s on MySQL %s parse ddl %s error %s"), // 解析MySQL sql 语句异常 %s: ddl
     WARN_DOMAIN_RESOLVE(10006, "wave %s resolve domain %s previous host %s error %s"), // 解析MySQL 域名地址失败 本地dns失效 %s: pre-host
-    WARN_QUERY_NO_FILE(40002, "wave %s dump MySQL %s with binlog file %s not exits error %s"),   // 初始化过程当中binlog file not exist %s: binlog file
-    WARN_PRODUCE_ERROR(10007, "wave %s dump MySQL %s on topic %s error %s"), // produce message error  %s 表示MQ地址 以及 topic
+    WARN_QUERY_NO_FILE(10007, "wave %s dump MySQL %s with binlog file %s not exits error %s"),   // 初始化过程当中binlog file not exist %s: binlog file
+    WARN_PRODUCE_ERROR(10008, "wave %s dump MySQL %s on topic %s error %s"), // produce message error  %s 表示MQ地址 以及 topic
+    WARN_ZK_DELETE_PATH(10009, "wave %s dump MySQL %s delete path %s error %s"), // %s : delete path
+    WARN_ZK_UPDATE_PATH(10010, "wave %s dump MySQL %s update path %s error %s"), // %s: update path
+    WARN_ZK_START_NEWHOST(10011, "wave %s start new MySQL %s error"), // %s: mysql
 
     // 系统错误 直接返回报错 不需要重试
     ERR_PRODUCER_CLASS_NOT_FOUND(20001, "wave %s dump MySQL %s on produce class %s not found"), // producer 类名未找到 %s: producer class
@@ -90,7 +93,7 @@ public enum ErrorCode {
      * @param paras
      * @return
      */
-    public byte[] assemble(String ...paras) {
+    public byte[] assemble(String... paras) {
         return String.format(temp, paras).getBytes();
     }
 }

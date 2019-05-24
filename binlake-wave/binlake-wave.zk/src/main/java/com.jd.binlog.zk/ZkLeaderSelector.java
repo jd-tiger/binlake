@@ -1,13 +1,16 @@
 package com.jd.binlog.zk;
 
 import com.jd.binlog.alarm.AlarmUtils;
-import com.jd.binlog.alarm.RetryTimesAlarmUtils;
+import com.jd.binlog.alarm.utils.JDMailParas;
+import com.jd.binlog.alarm.utils.JDPhoneParas;
 import com.jd.binlog.config.bean.HttpConfig;
 import com.jd.binlog.config.bean.ServerConfig;
 import com.jd.binlog.config.bean.ZKConfig;
 import com.jd.binlog.dbsync.LogPosition;
 import com.jd.binlog.exception.BinlogException;
+import com.jd.binlog.exception.ErrorCode;
 import com.jd.binlog.http.HttpServiceClient;
+import com.jd.binlog.inter.alarm.IAlarm;
 import com.jd.binlog.inter.work.IBinlogWorker;
 import com.jd.binlog.inter.work.IWorkInitializer;
 import com.jd.binlog.inter.zk.ILeaderSelector;
@@ -51,6 +54,7 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
     private String candidatePath;
     private String leaderPath;
     private String errorPath;
+    private String alarmPath;
     private String key;
     private MetaInfo metaInfo;
 
@@ -108,6 +112,7 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
         this.candidatePath = path + ConstUtils.ZK_CANDIDATE_PATH;
         this.leaderPath = path + ConstUtils.ZK_LEADER_PATH;
         this.errorPath = path + ConstUtils.ZK_ERROR_PATH;
+        this.alarmPath = path + ConstUtils.ZK_ALARM_PATH;
     }
 
     public void startSelector() {
@@ -364,7 +369,7 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
         LogUtils.debug.debug("takeLeadership");
         // 每次进入leader 清空上一次leader遗留下的位置信息
         reset();
-        MetaInfo metaInfo = getMetaInfo(client);
+        MetaInfo metaInfo = getMetaInfoFromZK(client);
         metaInfo.addVersion();
         int dumpLatch = serverConf.getDumpLatch();
 
@@ -408,19 +413,28 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
 
             updateBinlogInfo(Meta.BinlogInfo.marshalJson(metaInfo.getBinlogInfo()));
 
-            // remove leader path in zookeeper
-            if (client.checkExists().forPath(leaderPath) != null) {
-                client.delete().forPath(leaderPath);
-            }
-        } catch (Throwable exp) {
+            removeLeaderPath();
+        } catch (BinlogException exp) {
             LogUtils.error.error("init work failure " + metaInfo.getHost(), exp);
             metaInfo.addSessionRetryTimes();
 
-            RetryTimesAlarmUtils.alarm(metaInfo.getRetryTimes(),
-                    "MySQL instance:" + metaInfo.getHost() + ":" + metaInfo.getPort()
-                            + ", with retry times " + metaInfo.getRetryTimes() + ", with pre-leader "
-                            + metaInfo.getBinlogInfo().getPreLeader() + ", current wave host " + host);
 
+            switch (exp.getErrorCode().according()) {
+                case Retry:
+                    // retry without no retry
+                    AlarmUtils.mail(metaInfo.getRetryTimes(),
+                            metaInfo.getAlarm().getRetry(),
+                            JDMailParas.mailParas(
+                                    MetaInfo.mailTo(metaInfo.getAlarm().getUsers()),
+                                    String.format(IAlarm.MailSubTemplate, host, metaInfo.getHost()),
+                                    exp.message(metaInfo.getBinlogInfo().getLeader(), host, metaInfo.getHost())));
+                    break;
+                case Stop:
+                    // stop for distribution error 目前只发给管理员
+                    AlarmUtils.phone(JDPhoneParas.phoneParas(
+                                    exp.message(metaInfo.getBinlogInfo().getLeader(), host, metaInfo.getHost())));
+                    break;
+            }
             metaInfo.resetLeaderVersion(); // reset version because addVersion was called
             updateCounter(metaInfo); // 增加retryTimes 计数器
 
@@ -455,6 +469,27 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
             if (this.work == work) { // 只有可以关闭当前work
                 work.close(); // 此时已经退出leader
             }
+        }
+    }
+
+    /**
+     * remove leader path
+     *
+     * @throws BinlogException
+     */
+    private void removeLeaderPath() throws BinlogException {
+        CuratorFramework client = this.client;
+        if (client == null) {
+            return;
+        }
+
+        // remove leader path in zookeeper
+        try {
+            if (client.checkExists().forPath(leaderPath) != null) {
+                client.delete().forPath(leaderPath);
+            }
+        } catch (Exception e) {
+            throw new BinlogException(ErrorCode.WARN_ZK_DELETE_PATH, e, leaderPath);
         }
     }
 
@@ -651,15 +686,25 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
         Thread.sleep(((long) Math.pow(2, retryTimes)) * 1000);
     }
 
-    private MetaInfo getMetaInfo(CuratorFramework curatorFramework) throws Exception {
-        byte[] dbInfoByte = curatorFramework.getData().forPath(path);
-        byte[] binLogByte = curatorFramework.getData().forPath(binlogInfoPath);
-        byte[] counterBytes = curatorFramework.getData().forPath(counterPath);
+    private MetaInfo getMetaInfoFromZK(CuratorFramework c) throws Exception {
+        byte[] dbInfoByte = c.getData().forPath(path);
+        byte[] binLogByte = c.getData().forPath(binlogInfoPath);
+        byte[] counterBytes = c.getData().forPath(counterPath);
+
         Meta.DbInfo dbInfo = Meta.DbInfo.unmarshalJson(dbInfoByte);
         Meta.BinlogInfo binlogInfo = Meta.BinlogInfo.unmarshalJson(binLogByte);
         Meta.Counter counter = Meta.Counter.unmarshalJson(counterBytes);
 
-        return new MetaInfo(dbInfo, binlogInfo, counter);
+        /**
+         * here must compatible with previous version 4.0
+         */
+        Meta.Alarm alarm = null;
+        if (c.checkExists().forPath(alarmPath) != null) {
+            byte[] alarmBytes = c.getData().forPath(alarmPath);
+            alarm = Meta.Alarm.unmarshalJson(alarmBytes);
+        }
+
+        return new MetaInfo(dbInfo, binlogInfo, counter, alarm == null ? Meta.Alarm.defalut() : alarm);
     }
 
     public void stateChanged(CuratorFramework client, ConnectionState newState) {
@@ -690,12 +735,16 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
      * @param binlogBytes
      * @throws Exception
      */
-    public void updateBinlogInfo(byte[] binlogBytes) throws Exception {
+    public void updateBinlogInfo(byte[] binlogBytes) throws BinlogException {
         LogUtils.debug.debug("updateBinlogInfo");
         CuratorFramework client = this.client;
 
         if (client != null) {
-            client.setData().forPath(binlogInfoPath, binlogBytes);
+            try {
+                client.setData().forPath(binlogInfoPath, binlogBytes);
+            } catch (Exception e) {
+                throw new BinlogException(ErrorCode.WARN_ZK_UPDATE_PATH, e, binlogInfoPath);
+            }
         }
     }
 
@@ -806,9 +855,12 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
                 }
             } catch (Exception e) {
                 LogUtils.error.error("set new host : " + host + " online failure!", e);
-                AlarmUtils.alarm(metaInfo.getHost() + "_handle_terminal_node_failure" + "Binlake handle terminal node failure! " +
-                        "old host : " + metaInfo.getHost() + ", " +
-                        "new host : " + host);
+                BinlogException exp = new BinlogException(ErrorCode.WARN_ZK_START_NEWHOST, e, "");
+                AlarmUtils.mail(0, 1, JDMailParas.mailParas(
+                        MetaInfo.mailTo(metaInfo.getAlarm().getUsers()),
+                        String.format(IAlarm.MailSubTemplate, this.host, host),
+                        exp.message(this.host, host))
+                );
             }
         }
 
