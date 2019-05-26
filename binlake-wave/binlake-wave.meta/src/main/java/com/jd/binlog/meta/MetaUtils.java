@@ -38,6 +38,8 @@ public class MetaUtils {
         fixPaths.add(ConstUtils.ZK_TERMINAL_PATH.substring(1));
         fixPaths.add(ConstUtils.ZK_CANDIDATE_PATH.substring(1));
         fixPaths.add(ConstUtils.ZK_LEADER_PATH.substring(1));
+        fixPaths.add(ConstUtils.ZK_ALARM_PATH.substring(1));
+        fixPaths.add(ConstUtils.ZK_ERROR_PATH.substring(1));
     }
 
     /**

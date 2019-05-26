@@ -35,4 +35,9 @@ public interface ConstUtils {
      * alarm path for user including phone and email
      */
     String ZK_ALARM_PATH = "/alarm";
+
+    /***
+     * zk admin path on the MySQL node path
+     */
+    String ZK_ADMIN_PATH = "/admin";
 }

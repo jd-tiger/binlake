@@ -75,7 +75,7 @@ public class ZkClient implements IZkClient {
         createMetaPathIfNotExists();
 
         // init alarm utils
-        String p = this.zkConfig.getMetaPath().substring(this.zkConfig.getMetaPath().indexOf("/"));
+        String p = this.zkConfig.getMetaPath().substring(this.zkConfig.getMetaPath().indexOf("/")) + ConstUtils.ZK_ALARM_PATH;
         Meta.Admin admin = Meta.Admin.unmarshalJson(client.getData().forPath(p));
         AlarmUtils.init(admin.getMailParas(), admin.getAdminMails(), admin.getPhoneParas(), admin.getAdminPhones());
 

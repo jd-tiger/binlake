@@ -321,6 +321,17 @@ public class Meta {
             return new ObjectMapper().readValue(GzipUtil.uncompress(json), Error.class);
         }
 
+        /***
+         * default error
+         * @return
+         */
+        public static Error defalut() {
+            Meta.Error err = new Error();
+            err.code = 0;
+            err.msg = "".getBytes();
+            return err;
+        }
+
         @Override
         public String toString() {
             return "Error{" +
@@ -753,11 +764,38 @@ public class Meta {
      **/
     public static class MetaData {
         private DbInfo dbInfo;
+        /***
+         * slave node : mysql dump status offset
+         */
         private BinlogInfo slave;
+        /***
+         * master for node: MySQL show master status
+         */
         private BinlogInfo master;
+        /***
+         * counter node
+         */
         private Counter counter;
+        /**
+         * terminal node
+         */
         private Terminal terminal;
         private List<String> candidate;
+        /***
+         * alarm node
+         */
+        private Alarm alarm;
+
+        /***
+         * error path
+         */
+        private Error error;
+
+        /***
+         * admin node
+         */
+        private Admin admin;
+
         private ZK zk;
 
         public DbInfo getDbInfo() {
@@ -814,6 +852,31 @@ public class Meta {
 
         public void setZk(ZK zk) {
             this.zk = zk;
+        }
+
+        public Alarm getAlarm() {
+            return alarm;
+        }
+
+        public void setAlarm(Alarm alarm) {
+            this.alarm = alarm;
+        }
+
+        public Error getError() {
+            return error;
+        }
+
+        public void setError(Error error) {
+            this.error = error;
+        }
+
+        public Admin getAdmin() {
+            return admin;
+        }
+
+        public MetaData setAdmin(Admin admin) {
+            this.admin = admin;
+            return this;
         }
 
         public static byte[] marshalJson(MetaData metaData) throws Exception {

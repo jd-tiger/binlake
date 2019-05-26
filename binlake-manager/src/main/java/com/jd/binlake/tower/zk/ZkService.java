@@ -10,6 +10,7 @@ import org.apache.curator.framework.api.transaction.CuratorTransaction;
 import org.apache.curator.framework.api.transaction.CuratorTransactionFinal;
 import org.apache.curator.retry.RetryNTimes;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.data.Stat;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -165,11 +166,11 @@ public class ZkService {
     /**
      * 批量创建MySQL dump实例
      *
-     * @param metaInfoList
+     * @param ms : meta data list
      * @throws Exception
      */
-    public void batchCreate(List<Meta.MetaData> metaInfoList) throws Exception {
-        if (metaInfoList.size() == 0) {
+    public void batchCreate(List<Meta.MetaData> ms) throws Exception {
+        if (ms.size() == 0) {
             logger.warn("no meta info exist on creating znode ");
             return;
         }
@@ -182,7 +183,7 @@ public class ZkService {
         CuratorTransaction trx = client.inTransaction();
         CuratorTransactionFinal trxf = null;
 
-        for (Meta.MetaData metaInfo : metaInfoList) {
+        for (Meta.MetaData metaInfo : ms) {
             // parent path
             String path = zkPath + ApiCenter.makeZNodePath(metaInfo.getDbInfo().getHost(),
                     metaInfo.getDbInfo().getPort() + "");
@@ -198,6 +199,8 @@ public class ZkService {
             Meta.Candidate candidate = new Meta.Candidate().setHost(metaInfo.getCandidate());
             trxf = trx.create().forPath(path + ConstUtils.ZK_DYNAMIC_PATH, Meta.BinlogInfo.marshalJson(metaInfo.getSlave()))
                     .and().create().forPath(path + ConstUtils.ZK_COUNTER_PATH, cbts)
+                    .and().create().forPath(path + ConstUtils.ZK_ERROR_PATH, Meta.Error.marshalJson(Meta.Error.defalut()))
+                    .and().create().forPath(path + ConstUtils.ZK_ALARM_PATH, Meta.Alarm.marshalJson(metaInfo.getAlarm()))
                     .and().create().forPath(path + ConstUtils.ZK_CANDIDATE_PATH, Meta.Candidate.marshalJson(candidate)).and();
         }
 
@@ -224,6 +227,23 @@ public class ZkService {
             }
         } catch (Exception e) {
             logger.error("connect zookeeper error : " + key + "\n" + e);
+            throw e;
+        }
+        return true;
+    }
+
+    /***
+     * path exist in zk which is parallel with /zk/wave3 eg. /zk/admin
+     */
+    public boolean nodeExist(String p) throws Exception {
+        logger.info("admin node exist");
+
+        try {
+            if (client.checkExists().forPath(p) == null) {
+                return false;
+            }
+        } catch (Exception e) {
+            logger.error("connect zookeeper error : " + p + "\n" + e);
             throw e;
         }
         return true;
@@ -486,5 +506,19 @@ public class ZkService {
         } catch (Exception exp) {
             logger.error(exp);
         }
+    }
+
+    /**
+     * update admin node if exist or create admin node if not exist
+     * @param admin
+     */
+    public void upsertAdminNode(Meta.Admin admin) throws Exception {
+        String p = zkPath.substring(zkPath.indexOf("/")) + ConstUtils.ZK_ALARM_PATH;
+        if (nodeExist(p)) {
+            // admin node exist then
+            client.create().forPath(p, Meta.Admin.marshalJson(admin));
+        }
+
+        client.setData().forPath(p, Meta.Admin.marshalJson(admin));
     }
 }

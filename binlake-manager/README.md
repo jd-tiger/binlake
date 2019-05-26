@@ -19,7 +19,9 @@ api route | api handler | api function
 /set/candidate | SetCandidateHandler | 设置dump MySQL节点的candidate wave ips
 /set/offline | SetInstanceOffLIne | 设置MySQL 节点dump 下线
 /set/online | SetInstanceOnLine | 设置MySQL 节点dump 上线
-/set/terminal | SetTerminalHandler | 设置终止节点信息
+/set/terminal | SetTerminalHandler | 设置终止节点信息  
+/set/admin  | SetAdminHandler | 设置管理员信息 以及报警的请求地址 参数 目前分为邮件以及短信报警 
+
 
 * paras   
     all paras are using MetaData class json object is ok!
