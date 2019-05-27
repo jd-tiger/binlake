@@ -40,4 +40,28 @@ public interface ConstUtils {
      * zk admin path on the MySQL node path
      */
     String ZK_ADMIN_PATH = "/admin";
+
+    /***
+     * max retry times
+     */
+    int MAX_RETRY_TIMES = 100;
+
+    /**
+     * half an hour for max wait then just retry
+     */
+    long HALF_AN_HOUR = 30 * 60 * 1000;
+
+    /**
+     * milli seconds
+     *
+     * @param ts
+     * @return
+     */
+    static long MaxWait(long ts) {
+        if (ts > HALF_AN_HOUR) {
+            return HALF_AN_HOUR;
+        }
+
+        return ts;
+    }
 }

@@ -513,10 +513,11 @@ public class ZkService {
      * @param admin
      */
     public void upsertAdminNode(Meta.Admin admin) throws Exception {
-        String p = zkPath.substring(zkPath.indexOf("/")) + ConstUtils.ZK_ALARM_PATH;
+        String p = zkPath.substring(zkPath.indexOf("/")) + ConstUtils.ZK_ADMIN_PATH;
         if (nodeExist(p)) {
             // admin node exist then
             client.create().forPath(p, Meta.Admin.marshalJson(admin));
+            return;
         }
 
         client.setData().forPath(p, Meta.Admin.marshalJson(admin));

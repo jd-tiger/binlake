@@ -416,11 +416,18 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
             removeLeaderPath();
         } catch (BinlogException exp) {
             LogUtils.error.error("init work failure " + metaInfo.getHost(), exp);
-            metaInfo.addSessionRetryTimes();
 
+            byte[] errMsg = exp.message(metaInfo.getBinlogInfo().getLeader(), host, metaInfo.getHost());
+            Meta.Error err = new Meta.Error().
+                    setCode(exp.getErrorCode().errorCode).
+                    setMsg(errMsg);
+
+            LogUtils.warn.warn("add session retry times");
 
             switch (exp.getErrorCode().according()) {
                 case Retry:
+                    metaInfo.addSessionRetryTimes();
+                    metaInfo.setError(err);
                     // retry without no retry
                     AlarmUtils.mail(metaInfo.getRetryTimes(),
                             metaInfo.getAlarm().getRetry(),
@@ -430,9 +437,11 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
                                     exp.message(metaInfo.getBinlogInfo().getLeader(), host, metaInfo.getHost())));
                     break;
                 case Stop:
+                    metaInfo.fillRetryTimes();
+                    metaInfo.setError(err);
                     // stop for distribution error 目前只发给管理员
                     AlarmUtils.phone(JDPhoneParas.phoneParas(
-                                    exp.message(metaInfo.getBinlogInfo().getLeader(), host, metaInfo.getHost())));
+                            exp.message(metaInfo.getBinlogInfo().getLeader(), host, metaInfo.getHost())));
                     break;
             }
             metaInfo.resetLeaderVersion(); // reset version because addVersion was called
@@ -683,7 +692,7 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
         if (retryTimes == 0) {
             return;
         }
-        Thread.sleep(((long) Math.pow(2, retryTimes)) * 1000);
+        Thread.sleep(ConstUtils.MaxWait(((long) Math.pow(2, retryTimes)) * 1000));
     }
 
     private MetaInfo getMetaInfoFromZK(CuratorFramework c) throws Exception {

@@ -1,5 +1,6 @@
 package com.jd.binlog.meta;
 
+import com.jd.binlog.util.ConstUtils;
 import com.jd.binlog.util.LogUtils;
 
 import java.util.List;
@@ -186,7 +187,7 @@ public class MetaInfo {
 
     public void fillRetryTimes() {
         LogUtils.info.info(host + " addSessionRetryTimes " + retryTimes);
-        retryTimes += 100;
+        retryTimes += ConstUtils.MAX_RETRY_TIMES;
     }
 
     public void addSessionKillTimes() {
