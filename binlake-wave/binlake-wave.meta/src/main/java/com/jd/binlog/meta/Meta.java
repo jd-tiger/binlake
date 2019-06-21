@@ -497,7 +497,7 @@ public class Meta {
         private boolean withTransaction;    //是否携带事务信息 begin or commit message
         private boolean withUpdateBefore;   //update事件信息是否携带变更前数据
         private String producerClass;       //producer class name with constructor parameter List<Meta.Pair> mail
-        private OrderType type;             //topic类型：顺序主题或是非顺序主题
+        private OrderType order;             //topic类型：顺序主题或是非顺序主题
         private List<Pair> para;            //MQ 链接参数
         private List<Filter> white;         //白名单
         private List<Filter> black;         //黑名单
@@ -534,12 +534,12 @@ public class Meta {
             this.producerClass = producerClass;
         }
 
-        public OrderType getType() {
-            return type;
+        public OrderType getOrder() {
+            return order;
         }
 
-        public void setType(OrderType type) {
-            this.type = type;
+        public void setOrder(OrderType order) {
+            this.order = order;
         }
 
         public List<Pair> getPara() {

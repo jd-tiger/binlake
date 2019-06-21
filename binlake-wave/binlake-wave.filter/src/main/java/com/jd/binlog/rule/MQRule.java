@@ -66,7 +66,7 @@ public class MQRule implements IRule {
 
         this.topic = rule.getTopic();
         this.withTrx = rule.isWithTransaction();
-        this.order = rule.getType();
+        this.order = rule.getOrder();
         this.worker = worker;
         switch (order) {
             case NO_ORDER:
