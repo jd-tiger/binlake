@@ -195,8 +195,8 @@ public class MQRule implements IRule {
              * 筛选黑名单 如果有一个命中过滤器 则直接过滤
              */
             for (IFilter filter : black) {
-                if (filter.filterEventType(eventType) || (table != null && filter.filterTable(table))) {
-                    // 在黑名单事件类型当中 或者 在黑名单列表当中
+                if (filter.filterEventType(eventType) && (table != null && filter.filterTable(table))) {
+                    // 在黑名单事件类型当中 且 在黑名单列表当中
                     return true;
                 }
             }
