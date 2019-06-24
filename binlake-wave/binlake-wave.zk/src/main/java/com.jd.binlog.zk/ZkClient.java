@@ -13,6 +13,7 @@ import com.jd.binlog.inter.zk.IZkClient;
 import com.jd.binlog.meta.Http;
 import com.jd.binlog.meta.Meta;
 import com.jd.binlog.meta.MetaInfo;
+import com.jd.binlog.meta.MetaUtils;
 import com.jd.binlog.util.ConstUtils;
 import com.jd.binlog.util.LogUtils;
 import org.apache.curator.framework.CuratorFramework;
@@ -279,10 +280,9 @@ public class ZkClient implements IZkClient {
             LogUtils.debug.debug("addEphemeralNode path :" + path);
         }
 
-        byte[] dbBytes = client.getData().forPath(data.getPath());
         byte[] binLogByte = client.getData().forPath(path);
         byte[] counterBytes = client.getData().forPath(counterPath);
-        Meta.DbInfo dbInfo = Meta.DbInfo.unmarshalJson(dbBytes);
+        Meta.DbInfo dbInfo = MetaUtils.dbInfo(client, data.getPath());
         Meta.BinlogInfo binlogInfo = Meta.BinlogInfo.unmarshalJson(binLogByte);
         Meta.Counter counter = Meta.Counter.unmarshalJson(counterBytes);
         MetaInfo metaInfo = new MetaInfo(dbInfo, binlogInfo, counter);

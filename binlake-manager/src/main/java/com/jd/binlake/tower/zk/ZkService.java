@@ -47,8 +47,7 @@ public class ZkService {
      */
     public Meta.DbInfo getDbInfo(String host) throws Exception {
         logger.info("getDbInfo host : " + host);
-        byte[] data = client.getData().forPath(zkPath + host);
-        return Meta.DbInfo.unmarshalJson(data);
+        return MetaUtils.dbInfo(client, zkPath + host);
     }
 
     /**

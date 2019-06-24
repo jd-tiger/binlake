@@ -17,6 +17,7 @@ import com.jd.binlog.inter.zk.ILeaderSelector;
 import com.jd.binlog.meta.Http;
 import com.jd.binlog.meta.Meta;
 import com.jd.binlog.meta.MetaInfo;
+import com.jd.binlog.meta.MetaUtils;
 import com.jd.binlog.util.ConstUtils;
 import com.jd.binlog.util.LogUtils;
 import org.apache.commons.lang.StringUtils;
@@ -696,11 +697,11 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
     }
 
     private MetaInfo getMetaInfoFromZK(CuratorFramework c) throws Exception {
-        byte[] dbInfoByte = c.getData().forPath(path);
+        //byte[] dbInfoByte = c.getData().forPath(path);
         byte[] binLogByte = c.getData().forPath(binlogInfoPath);
         byte[] counterBytes = c.getData().forPath(counterPath);
 
-        Meta.DbInfo dbInfo = Meta.DbInfo.unmarshalJson(dbInfoByte);
+        Meta.DbInfo dbInfo = MetaUtils.dbInfo(c, path);
         Meta.BinlogInfo binlogInfo = Meta.BinlogInfo.unmarshalJson(binLogByte);
         Meta.Counter counter = Meta.Counter.unmarshalJson(counterBytes);
 
