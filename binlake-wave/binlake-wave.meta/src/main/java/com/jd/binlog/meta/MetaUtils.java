@@ -168,7 +168,7 @@ public class MetaUtils {
         // path value bytes map
         Map<String, byte[]> pbs = new LinkedHashMap<>(); // must in order
 
-        String dbPath = zkPath.endsWith("/") ? zkPath : (zkPath + "/") + nodePath(dbInfo.getHost(), dbInfo.getPort() + "");
+        String dbPath = (zkPath.endsWith("/") ? zkPath : (zkPath + "/")) + nodePath(dbInfo.getHost(), dbInfo.getPort() + "");
         pbs.put(dbPath, Meta.DbInfo.marshalJson(dbInfo));
 
         if (rls != null) {
