@@ -153,6 +153,12 @@ public class ZkService {
         return Meta.Candidate.unmarshalJson(data);
     }
 
+    public Meta.Error getError(String host) throws Exception {
+        logger.info("getCandidate host : " + host);
+        byte[] data = client.getData().forPath(zkPath + host + ConstUtils.ZK_ERROR_PATH);
+        return Meta.Error.unmarshalJson(data);
+    }
+
     public void close() {
         logger.info("close zk client");
         CuratorFramework client = this.client;

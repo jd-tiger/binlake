@@ -79,6 +79,10 @@ public class GetSlaveBinlogHandler extends AbstractHandler {
                 Meta.Candidate cands = service.getCandidate(ApiCenter.makeZNodePath(host, port + ""));
                 metaData.setCandidate(new LinkedList<String>(cands.getHost()));
                 logger.info("candidates info :\n" + cands);
+
+                Meta.Error error = service.getError(ApiCenter.makeZNodePath(host, port + ""));
+                metaData.setError(error);
+                logger.info("error info :\n" + error);
             } catch (Exception e) {
                 logger.error(e.getMessage());
                 ApiCenter.write(request, httpServletResponse,
