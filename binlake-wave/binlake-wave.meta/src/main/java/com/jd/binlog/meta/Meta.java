@@ -3,6 +3,8 @@ package com.jd.binlog.meta;
 import com.jd.binlog.util.GzipUtil;
 import org.codehaus.jackson.map.ObjectMapper;
 
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -253,26 +255,26 @@ public class Meta {
     }
 
     /**
-     counter is save retry times
+     * counter is save retry times
      **/
     public static class Counter {
-        private long retryTimes;    //times that Wave Server try to connect MySQL server
-        private long killTimes;     //times that Wave Server try to connect MySQL server
+        private int retryTimes;    //times that Wave Server try to connect MySQL server
+        private int killTimes;     //times that Wave Server try to connect MySQL server
 
-        public long getRetryTimes() {
+        public int getRetryTimes() {
             return retryTimes;
         }
 
-        public Counter setRetryTimes(long retryTimes) {
+        public Counter setRetryTimes(int retryTimes) {
             this.retryTimes = retryTimes;
             return this;
         }
 
-        public long getKillTimes() {
+        public int getKillTimes() {
             return killTimes;
         }
 
-        public Counter setKillTimes(long killTimes) {
+        public Counter setKillTimes(int killTimes) {
             this.killTimes = killTimes;
             return this;
         }
@@ -283,6 +285,59 @@ public class Meta {
 
         public static Counter unmarshalJson(byte[] json) throws Exception {
             return new ObjectMapper().readValue(GzipUtil.uncompress(json), Counter.class);
+        }
+    }
+
+    /**
+     * error node to remember error information
+     */
+    public static class Error {
+        private int code;
+        private byte[] msg;
+
+        public int getCode() {
+            return code;
+        }
+
+        public Error setCode(int code) {
+            this.code = code;
+            return this;
+        }
+
+        public byte[] getMsg() {
+            return msg;
+        }
+
+        public Error setMsg(byte[] msg) {
+            this.msg = msg;
+            return this;
+        }
+
+        public static byte[] marshalJson(Error err) throws Exception {
+            return GzipUtil.compress(new ObjectMapper().writeValueAsBytes(err));
+        }
+
+        public static Error unmarshalJson(byte[] json) throws Exception {
+            return new ObjectMapper().readValue(GzipUtil.uncompress(json), Error.class);
+        }
+
+        /***
+         * default error
+         * @return
+         */
+        public static Error defalut() {
+            Meta.Error err = new Error();
+            err.code = 0;
+            err.msg = "".getBytes();
+            return err;
+        }
+
+        @Override
+        public String toString() {
+            return "Error{" +
+                    "code=" + code +
+                    ", msg=" + Arrays.toString(msg) +
+                    '}';
         }
     }
 
@@ -431,19 +486,18 @@ public class Meta {
     }
 
     /**
-     topic rules map :
-
-     one topic in relation to many rules
-
-     one rule in relation to many topic
-
+     * topic rules map :
+     * <p>
+     * one topic in relation to many rules
+     * <p>
+     * one rule in relation to many topic
      **/
     public static class MQRule {
         private String topic;               //mq topic
         private boolean withTransaction;    //是否携带事务信息 begin or commit message
         private boolean withUpdateBefore;   //update事件信息是否携带变更前数据
-        private String producerClass;       //producer class name with constructor parameter List<Meta.Pair> paras
-        private OrderType type;             //topic类型：顺序主题或是非顺序主题
+        private String producerClass;       //producer class name with constructor parameter List<Meta.Pair> mail
+        private OrderType order;             //topic类型：顺序主题或是非顺序主题
         private List<Pair> para;            //MQ 链接参数
         private List<Filter> white;         //白名单
         private List<Filter> black;         //黑名单
@@ -480,12 +534,12 @@ public class Meta {
             this.producerClass = producerClass;
         }
 
-        public OrderType getType() {
-            return type;
+        public OrderType getOrder() {
+            return order;
         }
 
-        public void setType(OrderType type) {
-            this.type = type;
+        public void setOrder(OrderType order) {
+            this.order = order;
         }
 
         public List<Pair> getPara() {
@@ -626,6 +680,14 @@ public class Meta {
         public void setValue(String value) {
             this.value = value;
         }
+
+        @Override
+        public String toString() {
+            return "Pair{" +
+                    "key='" + key + '\'' +
+                    ", value='" + value + '\'' +
+                    '}';
+        }
     }
 
     public enum NodeState {
@@ -633,7 +695,9 @@ public class Meta {
         OFFLINE;
     }
 
-    /** 事件类型 **/
+    /**
+     * 事件类型
+     **/
     public enum EventType {
         OTHER,
         INSERT,
@@ -649,7 +713,9 @@ public class Meta {
         DINDEX;
     }
 
-    /** 消息顺序类型 **/
+    /**
+     * 消息顺序类型
+     **/
     public enum OrderType {
         NO_ORDER,           //完全乱序 无规则
         BUSINESS_KEY_ORDER, //业务主键级别消息顺序 partition 对应多个
@@ -659,13 +725,17 @@ public class Meta {
         INSTANCE_ORDER;     //实例级别消息顺序 broker 对应一个
     }
 
-    /** 存储类型 **/
+    /**
+     * 存储类型
+     **/
     public enum StorageType {
         MQ_STORAGE, //消息队列 规则
         KV_STORAGE; //KV storage
     }
 
-    /** zookeeper 信息结构体 **/
+    /**
+     * zookeeper 信息结构体
+     **/
     public static class ZK {
         private String servers; //zk servers地址
         private String path;    //监听的根路径
@@ -689,14 +759,43 @@ public class Meta {
         }
     }
 
-    /** MetaData 页面与管理端交互用的元数据信息 **/
+    /**
+     * MetaData 页面与管理端交互用的元数据信息
+     **/
     public static class MetaData {
         private DbInfo dbInfo;
+        /***
+         * slave node : mysql dump status offset
+         */
         private BinlogInfo slave;
+        /***
+         * master for node: MySQL show master status
+         */
         private BinlogInfo master;
+        /***
+         * counter node
+         */
         private Counter counter;
+        /**
+         * terminal node
+         */
         private Terminal terminal;
         private List<String> candidate;
+        /***
+         * alarm node
+         */
+        private Alarm alarm;
+
+        /***
+         * error path
+         */
+        private Error error;
+
+        /***
+         * admin node
+         */
+        private Admin admin;
+
         private ZK zk;
 
         public DbInfo getDbInfo() {
@@ -755,12 +854,248 @@ public class Meta {
             this.zk = zk;
         }
 
+        public Alarm getAlarm() {
+            return alarm;
+        }
+
+        public void setAlarm(Alarm alarm) {
+            this.alarm = alarm;
+        }
+
+        public Error getError() {
+            return error;
+        }
+
+        public void setError(Error error) {
+            this.error = error;
+        }
+
+        public Admin getAdmin() {
+            return admin;
+        }
+
+        public MetaData setAdmin(Admin admin) {
+            this.admin = admin;
+            return this;
+        }
+
         public static byte[] marshalJson(MetaData metaData) throws Exception {
             return GzipUtil.compress(new ObjectMapper().writeValueAsBytes(metaData));
         }
 
         public static MetaData unmarshalJson(byte[] json) throws Exception {
             return new ObjectMapper().readValue(GzipUtil.uncompress(json), MetaData.class);
+        }
+    }
+
+    /**
+     * alarm 节点示例节点位于统一层次 因为一个实例下所有数据共享
+     */
+    public static class Alarm {
+        /**
+         * users
+         */
+        private List<User> users;
+
+        /***
+         * retry times latch
+         */
+        private int retry = 9;
+
+        /**
+         * kill time latch
+         */
+        private int kill = 3;
+
+        public List<User> getUsers() {
+            return users;
+        }
+
+        public Alarm setUsers(List<User> users) {
+            this.users = users;
+            return this;
+        }
+
+        public int getRetry() {
+            return retry;
+        }
+
+        public Alarm setRetry(int retry) {
+            this.retry = retry;
+            return this;
+        }
+
+        public int getKill() {
+            return kill;
+        }
+
+        public Alarm setKill(int kill) {
+            this.kill = kill;
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return "Alarm{" +
+                    "users=" + users +
+                    ", retry=" + retry +
+                    ", kill=" + kill +
+                    '}';
+        }
+
+        public static byte[] marshalJson(Alarm alarm) throws Exception {
+            return GzipUtil.compress(new ObjectMapper().writeValueAsBytes(alarm));
+        }
+
+        public static Alarm unmarshalJson(byte[] json) throws Exception {
+            return new ObjectMapper().readValue(GzipUtil.uncompress(json), Alarm.class);
+        }
+
+        /**
+         * take default alarm
+         *
+         * @return
+         */
+        public static Alarm defalut() {
+            Alarm alarm = new Alarm();
+            alarm.users = new LinkedList<>();
+            alarm.users.add(User.defalut());
+            return alarm;
+        }
+    }
+
+    /**
+     * User 用户信息 用于报警以及短信发送
+     */
+    public static class User {
+        /**
+         * phone number
+         */
+        private String phone;
+
+        /***
+         * email address
+         */
+        private String email;
+
+        public String getPhone() {
+            return phone;
+        }
+
+        public User setPhone(String phone) {
+            this.phone = phone;
+            return this;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public User setEmail(String email) {
+            this.email = email;
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return "User{" +
+                    "phone='" + phone + '\'' +
+                    ", email='" + email + '\'' +
+                    '}';
+        }
+
+        public static byte[] marshalJson(User user) throws Exception {
+            return GzipUtil.compress(new ObjectMapper().writeValueAsBytes(user));
+        }
+
+        public static User unmarshalJson(byte[] json) throws Exception {
+            return new ObjectMapper().readValue(GzipUtil.uncompress(json), User.class);
+        }
+
+        /***
+         * default user if not exist
+         * @return
+         */
+        public static User defalut() {
+            return new User().setEmail("pengan@jd.com").setPhone("18515819096");
+        }
+    }
+
+    /**
+     * Admin 管理员节点 用于保存 报警请求信息
+     */
+    public static class Admin {
+        Map<String, String> mail; // http mail parameters for post request
+
+        Map<String, String> phone; // http phone parameters for post request
+
+        List<User> users; // admin users information
+
+        public Map<String, String> getMailParas() {
+            return mail;
+        }
+
+        public Admin setMail(Map<String, String> mail) {
+            this.mail = mail;
+            return this;
+        }
+
+        public List<User> getUsers() {
+            return users;
+        }
+
+        public Admin setUsers(List<User> users) {
+            this.users = users;
+            return this;
+        }
+
+        public Map<String, String> getPhoneParas() {
+            return phone;
+        }
+
+        public void setPhone(Map<String, String> phone) {
+            this.phone = phone;
+        }
+
+        @Override
+        public String toString() {
+            return "Admin{" +
+                    "mail=" + mail +
+                    ", phone=" + phone +
+                    ", users=" + users +
+                    '}';
+        }
+
+        public static byte[] marshalJson(Admin admin) throws Exception {
+            return GzipUtil.compress(new ObjectMapper().writeValueAsBytes(admin));
+        }
+
+        public static Admin unmarshalJson(byte[] json) throws Exception {
+            return new ObjectMapper().readValue(GzipUtil.uncompress(json), Admin.class);
+        }
+
+        /***
+         * get admin mails
+         * @return
+         */
+        public String[] getAdminMails() {
+            String[] ms = new String[users.size()];
+            for (int i = 0; i < ms.length; i++) {
+                ms[i] = users.get(i).getEmail();
+            }
+            return ms;
+        }
+
+        /***
+         * get admin phones
+         * @return
+         */
+        public String[] getAdminPhones() {
+            String[] ps = new String[users.size()];
+            for (int i = 0; i < ps.length; i++) {
+                ps[i] = users.get(i).getPhone();
+            }
+            return ps;
         }
     }
 }

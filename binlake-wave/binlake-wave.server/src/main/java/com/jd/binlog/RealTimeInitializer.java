@@ -1,6 +1,5 @@
 package com.jd.binlog;
 
-import com.jd.binlog.inter.alarm.IAlarm;
 import com.jd.binlog.inter.perform.IPerformance;
 import com.jd.binlog.inter.zk.ILeaderSelector;
 import com.jd.binlog.util.LogUtils;
@@ -73,21 +72,6 @@ public class RealTimeInitializer {
             String alarmUrl = props.getProperty("alarm.contact.url", "http://api.dbs.jd.com:9000/godbs/sendText/");
 
             LogUtils.info.info("phones:" + phones + ", token:" + token + ", url:" + alarmUrl);
-
-            IAlarm.phones.clear();
-            for (String phone : phones.split(",")) {
-                if (phone.trim().length() != 0) {
-                    IAlarm.phones.add(phone.trim());
-                }
-            }
-
-            if (token.trim().length() != 0) {
-                IAlarm.token.set(token.trim());
-            }
-
-            if (alarmUrl.trim().length() != 0) {
-                IAlarm.url.set(alarmUrl.trim());
-            }
 
             /**
              * 强制刷新 binlog 日志

@@ -37,6 +37,9 @@ public class ConfigLoader {
         this.zkConf = new ZKConfig();
         for (Map.Entry<String, String> entry : Constants.ZK_FIELDS.entrySet()) {
             value = props.getProperty(entry.getKey(), Constants.ZK_FIELDS_DEFAULT_VALUE.get(entry.getKey()));
+            while (value.endsWith("/")) {
+                value = value.substring(0, value.lastIndexOf("/"));
+            }
             field = entry.getValue();
             ReflectUtils.setFieldValue(zkConf, field, value);
         }

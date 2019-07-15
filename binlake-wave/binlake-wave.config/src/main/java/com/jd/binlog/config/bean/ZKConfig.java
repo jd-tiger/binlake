@@ -8,17 +8,8 @@ import com.jd.binlog.config.validate.Validation;
 public class ZKConfig implements Validation {
     private String servers;
     private String metaPath;
-    private String binlogKey = "/dynamic";
-    private String counterPath = "/counter";
-    private String terminalPath = "/terminal";
-    private String candidatePath = "/candidate";
-    private String leaderPath = "/leader";
     private int retryTimes = 10;
     private int sleepMsBetweenRetries = 1000;
-
-    public String getTerminalPath() {
-        return terminalPath;
-    }
 
     public String getServers() {
         return servers;
@@ -26,22 +17,6 @@ public class ZKConfig implements Validation {
 
     public String getMetaPath() {
         return metaPath;
-    }
-
-    public String getBinlogKey() {
-        return binlogKey;
-    }
-
-    public String getCounterPath() {
-        return counterPath;
-    }
-
-    public String getLeaderPath() {
-        return leaderPath;
-    }
-
-    public String getCandidatePath() {
-        return candidatePath;
     }
 
     public int getRetryTimes() {
@@ -53,6 +28,5 @@ public class ZKConfig implements Validation {
     }
 
     public void validate() throws IllegalArgumentException {
-
     }
 }

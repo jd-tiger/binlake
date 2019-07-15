@@ -12,7 +12,6 @@ import com.jd.binlog.util.ExecutorUtils;
 import com.jd.binlog.util.LogUtils;
 import com.jd.binlog.util.NetUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -165,7 +164,7 @@ public abstract class DomainSwitchTracker {
 
         if (isa.getAddress() == null || StringUtils.equals(isa.getAddress().getHostAddress(), metaInfo.getHost())) {
             // domain have no resolution or resolve error
-            throw new BinlogException(ErrorCode.ERR_DOMAIN_PARSE, " host " + metaInfo.getHost() + " resolved error");
+            throw new BinlogException(ErrorCode.WARN_DOMAIN_RESOLVE, new Exception(" host " + metaInfo.getHost() + " resolved error"), metaInfo.getInstanceIp());
         }
         return ip;
     }

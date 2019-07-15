@@ -1,5 +1,6 @@
 package com.jd.binlog.meta;
 
+import com.jd.binlog.util.ConstUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.log4j.Logger;
 
@@ -28,20 +29,17 @@ public class MetaUtils {
     /**
      * zk path
      */
-    public static String ZK_COUNTER_PATH = "/counter";
-    public static String ZK_DYNAMIC_PATH = "/dynamic";
-    public static String ZK_TERMINAL_PATH = "/terminal";
-    public static String ZK_CANDIDATE_PATH = "/candidate";
-    public static String ZK_LEADER_PATH = "/leader";
 
     private static Set<String> fixPaths = new HashSet<>();
 
     static {
-        fixPaths.add(ZK_COUNTER_PATH.substring(1));
-        fixPaths.add(ZK_DYNAMIC_PATH.substring(1));
-        fixPaths.add(ZK_TERMINAL_PATH.substring(1));
-        fixPaths.add(ZK_CANDIDATE_PATH.substring(1));
-        fixPaths.add(ZK_LEADER_PATH.substring(1));
+        fixPaths.add(ConstUtils.ZK_COUNTER_PATH.substring(1));
+        fixPaths.add(ConstUtils.ZK_DYNAMIC_PATH.substring(1));
+        fixPaths.add(ConstUtils.ZK_TERMINAL_PATH.substring(1));
+        fixPaths.add(ConstUtils.ZK_CANDIDATE_PATH.substring(1));
+        fixPaths.add(ConstUtils.ZK_LEADER_PATH.substring(1));
+        fixPaths.add(ConstUtils.ZK_ALARM_PATH.substring(1));
+        fixPaths.add(ConstUtils.ZK_ERROR_PATH.substring(1));
     }
 
     /**
@@ -170,7 +168,7 @@ public class MetaUtils {
         // path value bytes map
         Map<String, byte[]> pbs = new LinkedHashMap<>(); // must in order
 
-        String dbPath = zkPath.endsWith("/") ? zkPath : (zkPath + "/") + nodePath(dbInfo.getHost(), dbInfo.getPort() + "");
+        String dbPath = (zkPath.endsWith("/") ? zkPath : (zkPath + "/")) + nodePath(dbInfo.getHost(), dbInfo.getPort() + "");
         pbs.put(dbPath, Meta.DbInfo.marshalJson(dbInfo));
 
         if (rls != null) {

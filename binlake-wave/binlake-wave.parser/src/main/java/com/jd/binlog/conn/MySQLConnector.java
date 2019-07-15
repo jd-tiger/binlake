@@ -5,11 +5,12 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 import java.security.NoSuchAlgorithmException;
-import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.jd.binlog.exception.BinlogException;
+import com.jd.binlog.exception.ErrorCode;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.log4j.Logger;
 
@@ -62,12 +63,10 @@ public class MySQLConnector {
         this.charsetNumber = charsetNumber;
     }
 
-    public void connect() throws IOException {
-        FutureTask<Void> future = new FutureTask<Void>(new Callable<Void>() {
-            public Void call() throws Exception {
-                handshake();
-                return null;
-            }
+    public void connect() throws BinlogException {
+        FutureTask<Void> future = new FutureTask<Void>(() -> {
+            handshake();
+            return null;
         });
 
         MySQLExecuteService.connExecutor.execute(future);
@@ -75,7 +74,7 @@ public class MySQLConnector {
             future.get(MySQLExecutor.EXECUTE_TIMEOUT, TimeUnit.MILLISECONDS);
         } catch (Throwable e) {
             future.cancel(true);
-            throw new IOException("create MySQL conn timeout");
+            throw new BinlogException(ErrorCode.WARN_MySQL_HANDSHAKE, e, username + "/****");
         }
     }
 
@@ -89,7 +88,7 @@ public class MySQLConnector {
                 negotiate(channel);
             } catch (Exception e) {
                 disconnect();
-                throw new IOException("connect " + address + " failure:" + ExceptionUtils.getStackTrace(e));
+                throw new BinlogException(ErrorCode.WARN_MySQL_HANDSHAKE, e, "connect " + address + " failure:");
             }
         } else {
             logger.error("the channel can't be connected twice.");

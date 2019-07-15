@@ -124,9 +124,9 @@ public class ProtobufConverter implements IConvert<String> {
                 if (StringUtils.isEmpty(tableName) ||
                         (result.getType() == WaveEntry.EventType.RENAME && StringUtils.isEmpty(result.getOriTableName()))) {
                     // 如果解析不出tableName,记录一下日志，方便bugfix，目前直接抛出异常，中断解析
-                    throw new BinlogException(ErrorCode.PARSER_ERROR,
-                            "SimpleDdlParser process write failed. pls submit issue with this queryString: "
-                                    + query + " , and DdlResult: " + result.toString());
+                    throw new BinlogException(ErrorCode.WARN_MySQL_DDL_PARSE,
+                            new Exception("SimpleDdlParser process write failed. pls submit issue with this queryString: "
+                                    + query + " , and DdlResult: " + result.toString()), query);
                 }
                 break;
             case INSERT:
@@ -183,7 +183,7 @@ public class ProtobufConverter implements IConvert<String> {
             WaveEntry.Entry entry = buildQueryEntry(query, msg.getHost(), msg.getBinlogFile(), event.getHeader());
             part.offer(encapWithNoIncr(entry, generator, producer, msg, id, worker));
         } catch (UnsupportedEncodingException e) {
-            throw new BinlogException(ErrorCode.PARSER_ERROR, e);
+            throw new BinlogException(ErrorCode.ERR_UNSUPPORT_ENCODE, e, "charset:" + ISO_8859_1 + "|offset{" + msg.getBinlogFile() + ":" + msg.getLogPosition() + "}");
         }
     }
 

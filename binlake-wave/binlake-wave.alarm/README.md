@@ -11,14 +11,22 @@
 * 报警分类  
     * 重试次数报警
         ```sbtshell
-        调用 RetryTimesAlarmUtils.alarm(long times, String msg)
+        AlarmUtils.mail(long times, String msg)    
         ```
-    * 其余报警  
-        ```sbtshell
-        直接调用 AlarmUtils.alarm(String msg)
+    * 短信报警方式  
+        ```text
+        AlarmUtils.phone(long times, String msg)
         ```
         
 ## 实现方式  
 * url post请求   
-    采用公司统一的报警接口发送报警短信  
+    采用公司统一的报警接口发送报警短信或者邮件 
 
+* 报警格式   
+    由于每个公司的报警内容以及报警的方式或者报警的邮件参数不一样, 所以采用统一的map形式 完成输出的输出 
+    
+    * JDMailParas   
+        是 JD.com 邮件报警的方式, 专用于邮件的报警 
+    
+    * JDPhoneParas  
+        是 JD.com 短信报警的方式, 专用于短信以及系统异常的报警   

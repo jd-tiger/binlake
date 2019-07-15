@@ -3,12 +3,14 @@ package com.jd.binlake.tower.zk;
 import com.jd.binlake.tower.api.ApiCenter;
 import com.jd.binlog.meta.Meta;
 import com.jd.binlog.meta.MetaUtils;
+import com.jd.binlog.util.ConstUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.api.transaction.CuratorTransaction;
 import org.apache.curator.framework.api.transaction.CuratorTransactionFinal;
 import org.apache.curator.retry.RetryNTimes;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.data.Stat;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -45,8 +47,7 @@ public class ZkService {
      */
     public Meta.DbInfo getDbInfo(String host) throws Exception {
         logger.info("getDbInfo host : " + host);
-        byte[] data = client.getData().forPath(zkPath + host);
-        return Meta.DbInfo.unmarshalJson(data);
+        return MetaUtils.dbInfo(client, zkPath + host);
     }
 
     /**
@@ -136,20 +137,26 @@ public class ZkService {
      */
     public Meta.BinlogInfo getBinlogInfo(String host) throws Exception {
         logger.info("getBinlogInfo host: " + host);
-        byte[] data = client.getData().forPath(zkPath + host + MetaUtils.ZK_DYNAMIC_PATH);
+        byte[] data = client.getData().forPath(zkPath + host + ConstUtils.ZK_DYNAMIC_PATH);
         return Meta.BinlogInfo.unmarshalJson(data);
     }
 
     public Meta.Counter getCounter(String host) throws Exception {
         logger.info("getCounter host : " + host);
-        byte[] data = client.getData().forPath(zkPath + host + MetaUtils.ZK_COUNTER_PATH);
+        byte[] data = client.getData().forPath(zkPath + host + ConstUtils.ZK_COUNTER_PATH);
         return Meta.Counter.unmarshalJson(data);
     }
 
     public Meta.Candidate getCandidate(String host) throws Exception {
         logger.info("getCandidate host : " + host);
-        byte[] data = client.getData().forPath(zkPath + host + MetaUtils.ZK_CANDIDATE_PATH);
+        byte[] data = client.getData().forPath(zkPath + host + ConstUtils.ZK_CANDIDATE_PATH);
         return Meta.Candidate.unmarshalJson(data);
+    }
+
+    public Meta.Error getError(String host) throws Exception {
+        logger.info("getCandidate host : " + host);
+        byte[] data = client.getData().forPath(zkPath + host + ConstUtils.ZK_ERROR_PATH);
+        return Meta.Error.unmarshalJson(data);
     }
 
     public void close() {
@@ -164,11 +171,11 @@ public class ZkService {
     /**
      * 批量创建MySQL dump实例
      *
-     * @param metaInfoList
+     * @param ms : meta data list
      * @throws Exception
      */
-    public void batchCreate(List<Meta.MetaData> metaInfoList) throws Exception {
-        if (metaInfoList.size() == 0) {
+    public void batchCreate(List<Meta.MetaData> ms) throws Exception {
+        if (ms.size() == 0) {
             logger.warn("no meta info exist on creating znode ");
             return;
         }
@@ -181,7 +188,7 @@ public class ZkService {
         CuratorTransaction trx = client.inTransaction();
         CuratorTransactionFinal trxf = null;
 
-        for (Meta.MetaData metaInfo : metaInfoList) {
+        for (Meta.MetaData metaInfo : ms) {
             // parent path
             String path = zkPath + ApiCenter.makeZNodePath(metaInfo.getDbInfo().getHost(),
                     metaInfo.getDbInfo().getPort() + "");
@@ -195,9 +202,11 @@ public class ZkService {
 
             // other nodes
             Meta.Candidate candidate = new Meta.Candidate().setHost(metaInfo.getCandidate());
-            trxf = trx.create().forPath(path + MetaUtils.ZK_DYNAMIC_PATH, Meta.BinlogInfo.marshalJson(metaInfo.getSlave()))
-                    .and().create().forPath(path + MetaUtils.ZK_COUNTER_PATH, cbts)
-                    .and().create().forPath(path + MetaUtils.ZK_CANDIDATE_PATH, Meta.Candidate.marshalJson(candidate)).and();
+            trxf = trx.create().forPath(path + ConstUtils.ZK_DYNAMIC_PATH, Meta.BinlogInfo.marshalJson(metaInfo.getSlave()))
+                    .and().create().forPath(path + ConstUtils.ZK_COUNTER_PATH, cbts)
+                    .and().create().forPath(path + ConstUtils.ZK_ERROR_PATH, Meta.Error.marshalJson(Meta.Error.defalut()))
+                    .and().create().forPath(path + ConstUtils.ZK_ALARM_PATH, Meta.Alarm.marshalJson(metaInfo.getAlarm()))
+                    .and().create().forPath(path + ConstUtils.ZK_CANDIDATE_PATH, Meta.Candidate.marshalJson(candidate)).and();
         }
 
         // commit transaction final
@@ -228,6 +237,23 @@ public class ZkService {
         return true;
     }
 
+    /***
+     * path exist in zk which is parallel with /zk/wave3 eg. /zk/admin
+     */
+    public boolean nodeExist(String p) throws Exception {
+        logger.info("admin node exist");
+
+        try {
+            if (client.checkExists().forPath(p) == null) {
+                return false;
+            }
+        } catch (Exception e) {
+            logger.error("connect zookeeper error : " + p + "\n" + e);
+            throw e;
+        }
+        return true;
+    }
+
     /**
      * 检查是否还有临时节点
      *
@@ -239,13 +265,14 @@ public class ZkService {
     public boolean checkChildSENodeExist(String host, int port) throws Exception {
         String key = ApiCenter.makeZNodePath(host, port + "");
         List<String> childList = client.getChildren().forPath(zkPath + key);
-        childList.remove(MetaUtils.ZK_DYNAMIC_PATH.substring(1));
-        childList.remove(MetaUtils.ZK_COUNTER_PATH.substring(1));
-        childList.remove(MetaUtils.ZK_TERMINAL_PATH.substring(1));
-        childList.remove(MetaUtils.ZK_CANDIDATE_PATH.substring(1));
-        childList.remove(MetaUtils.ZK_LEADER_PATH.substring(1));
+        for (String child : childList) {
+            Stat stat = client.checkExists().forPath(zkPath + key + "/" + child);
+            if (stat != null && stat.getEphemeralOwner() > 0) {
+                return true;
+            }
+        }
 
-        return childList.size() > 0;
+        return false;
     }
 
     /**
@@ -262,7 +289,7 @@ public class ZkService {
         CuratorTransaction tx = client.inTransaction();
 
         tx.setData().forPath(zkPath + key, dbData).and()
-                .setData().forPath(zkPath + key + MetaUtils.ZK_COUNTER_PATH,
+                .setData().forPath(zkPath + key + ConstUtils.ZK_COUNTER_PATH,
                 Meta.Counter.marshalJson(new Meta.Counter())).and()
                 .commit();
     }
@@ -302,7 +329,7 @@ public class ZkService {
                 if (!checkChildSENodeExist(host, port)) {
                     break;
                 }
-                if (count > 10) {
+                if (count > 50) {
                     throw new Exception("ephemeral node disappeared too long after set offline");
                 }
                 count++;
@@ -354,7 +381,7 @@ public class ZkService {
      */
     public void setBinlogPosition(String host, int port, String binlogFile, long binlogPosition, String gtidSets) throws Exception {
         logger.debug("set binlog position on : " + host + ":" + port);
-        String binlogPath = zkPath + ApiCenter.makeZNodePath(host, port + "") + MetaUtils.ZK_DYNAMIC_PATH;
+        String binlogPath = zkPath + ApiCenter.makeZNodePath(host, port + "") + ConstUtils.ZK_DYNAMIC_PATH;
 
         byte[] binlogData = client.getData().forPath(binlogPath);
         Meta.BinlogInfo binlogInfo = Meta.BinlogInfo.unmarshalJson(binlogData);
@@ -380,7 +407,7 @@ public class ZkService {
      */
     public void setCandidate(String host, int port, List<String> candidateHosts) throws Exception {
         logger.debug("set node status on : " + host + ":" + port);
-        String candidatePath = zkPath + ApiCenter.makeZNodePath(host, port + "") + MetaUtils.ZK_CANDIDATE_PATH;
+        String candidatePath = zkPath + ApiCenter.makeZNodePath(host, port + "") + ConstUtils.ZK_CANDIDATE_PATH;
         Meta.Candidate candidate = new Meta.Candidate();
         candidate.setHost(candidateHosts);
 
@@ -409,7 +436,7 @@ public class ZkService {
     public void setLeader(String host, int port, String leader) throws Exception {
         logger.debug("set zkLeader " + leader + " for " + host);
         String leaderPath = zkPath +
-                ApiCenter.makeZNodePath(host, port + "") + MetaUtils.ZK_LEADER_PATH;
+                ApiCenter.makeZNodePath(host, port + "") + ConstUtils.ZK_LEADER_PATH;
 
         if (logger.isDebugEnabled()) {
             logger.debug(host + ":" + port + " set leader " + leader);
@@ -443,7 +470,7 @@ public class ZkService {
     public void setTerminal(String host, int port, Meta.Terminal terminal) throws Exception {
         // 添加终止节点
         String terminalPath = zkPath +
-                ApiCenter.makeZNodePath(host, port + "") + MetaUtils.ZK_TERMINAL_PATH;
+                ApiCenter.makeZNodePath(host, port + "") + ConstUtils.ZK_TERMINAL_PATH;
 
         logger.debug("candidate : " + terminal.toString());
 
@@ -485,5 +512,20 @@ public class ZkService {
         } catch (Exception exp) {
             logger.error(exp);
         }
+    }
+
+    /**
+     * update admin node if exist or create admin node if not exist
+     * @param admin
+     */
+    public void upsertAdminNode(Meta.Admin admin) throws Exception {
+        String p = zkPath.substring(zkPath.indexOf("/")) + ConstUtils.ZK_ADMIN_PATH;
+        if (nodeExist(p)) {
+            // admin node exist then
+            client.create().forPath(p, Meta.Admin.marshalJson(admin));
+            return;
+        }
+
+        client.setData().forPath(p, Meta.Admin.marshalJson(admin));
     }
 }

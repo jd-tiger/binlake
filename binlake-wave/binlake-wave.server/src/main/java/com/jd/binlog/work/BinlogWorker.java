@@ -1,6 +1,8 @@
 package com.jd.binlog.work;
 
-import com.jd.binlog.alarm.RetryTimesAlarmUtils;
+import com.jd.binlog.alarm.AlarmUtils;
+import com.jd.binlog.alarm.utils.JDMailParas;
+import com.jd.binlog.alarm.utils.JDPhoneParas;
 import com.jd.binlog.conn.MySQLConnector;
 import com.jd.binlog.conn.MySQLExecutor;
 import com.jd.binlog.convert.Converter;
@@ -12,6 +14,7 @@ import com.jd.binlog.dump.DumpType;
 import com.jd.binlog.exception.BinlogException;
 import com.jd.binlog.exception.ErrorCode;
 import com.jd.binlog.filter.aviater.AviaterRegexFilter;
+import com.jd.binlog.inter.alarm.IAlarm;
 import com.jd.binlog.inter.msg.IConvert;
 import com.jd.binlog.inter.msg.IRepartition;
 import com.jd.binlog.inter.produce.IProducer;
@@ -177,7 +180,7 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
 
         if (this.ruleNum == 0) {
             // 如果规则不存在 则直接放弃dump 数据抛出异常 进行重试
-            throw new BinlogException(ErrorCode.ERR_RULE_NUM, "过滤规则为空!!");
+            throw new BinlogException(ErrorCode.ERR_RULE_EMPTY, new Exception("过滤规则为空"));
         }
 
         fillThrottler(throttleSize);
@@ -186,7 +189,7 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
         this.dump = new MySQLConnector(metaInfo.getDbInfo());
 
         // log position
-        this.logPositions = new ConcurrentLinkedQueue<LogPosition>();
+        this.logPositions = new ConcurrentLinkedQueue<>();
 
         // table meta cache using guava cache
         this.tableMetaCache = new TableMetaCache(new MySQLConnector(metaInfo.getDbInfo()));
@@ -234,7 +237,7 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
         MQRule mr = new MQRule(mqRule, conv, producer, part, this);
         rs.add(mr);
 
-        return mqRule.getType() == Meta.OrderType.NO_ORDER;
+        return mqRule.getOrder() == Meta.OrderType.NO_ORDER;
     }
 
     /**
@@ -265,12 +268,10 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
         } catch (InterruptedException e) {
             // InterruptedException that means all have closed because of the interrupt
             close(); // just close
-        } catch (IOException e) {
-            handleIOException(e);
         } catch (BinlogException e) {
-            handleIOException(new IOException(e));
+            handleException(e);
         } catch (Throwable e) {
-            handleError(e);
+            handleException(new BinlogException(ErrorCode.ERR_UNKNOWN, e));
         }
     }
 
@@ -528,8 +529,8 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
     }
 
     @Override
-    public void handleIOException(IOException exp) {
-        LogUtils.debug.debug("handleIOException stop dump service");
+    public void handleException(BinlogException exp) {
+        LogUtils.debug.debug("handleException stop dump service");
 
         LogUtils.error.error("host: " + host + " io exception ", exp);
 
@@ -552,13 +553,32 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
         ILeaderSelector leader = this.leader;
         MetaInfo metaInfo = this.metaInfo;
         if (success && leader != null && metaInfo != null) {
-            LogUtils.warn.warn("add session retry times");
-            metaInfo.addSessionRetryTimes();
+            // get meta info
+            byte[] errMsg = exp.message(metaInfo.getBinlogInfo().getLeader(), host, metaInfo.getHost());
+            Meta.Error err = new Meta.Error().
+                    setCode(exp.getErrorCode().errorCode).
+                    setMsg(errMsg);
 
-            RetryTimesAlarmUtils.alarm(metaInfo.getRetryTimes(),
-                    "MySQL instance:" + metaInfo.getHost() + ":" + metaInfo.getPort()
-                            + ", with retry times " + metaInfo.getRetryTimes() + ", with pre-leader "
-                            + metaInfo.getBinlogInfo().getPreLeader() + ", current wave host " + host);
+            LogUtils.warn.warn("add session retry times");
+            switch (exp.getErrorCode().according()) {
+                case Retry:
+                    metaInfo.addSessionRetryTimes();
+                    metaInfo.setError(err);
+                    // 重试报警
+                    AlarmUtils.mail(metaInfo.getRetryTimes(), metaInfo.getAlarm().getRetry(),
+                            JDMailParas.mailParas(
+                                    MetaInfo.mailTo(metaInfo.getAlarm().getUsers()),
+                                    String.format(IAlarm.MailSubTemplate, host, metaInfo.getHost()),
+                                    errMsg));
+                    break;
+                case Stop:
+                    metaInfo.fillRetryTimes();
+                    metaInfo.setError(err);
+                    // 系统报警
+                    AlarmUtils.phone(JDPhoneParas.phoneParas(errMsg));
+                    break;
+            }
+
 
             try {
                 leader.updateCounter(metaInfo);
@@ -568,6 +588,8 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
 
             LogUtils.warn.warn("abandon leader ship");
             leader.abandonLeaderShip();
+
+            // only close success then have the lock to reset null
             this.leader = null;
             this.metaInfo = null;
         }
@@ -765,44 +787,53 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
         }
     }
 
+    /**
+     * here packet is get success
+     *
+     * @param data
+     * @param meta
+     * @param leader
+     * @param gtids
+     * @param logPositions
+     * @param decoder
+     * @param throttler
+     * @throws InterruptedException
+     */
     private final void decodeBytes(byte[] data,
                                    TableMetaCache meta, ILeaderSelector leader,
                                    Map<String, GTID> gtids,
                                    ConcurrentLinkedQueue<LogPosition> logPositions,
                                    LogDecoder decoder,
-                                   LinkedBlockingQueue<Object> throttler) throws InterruptedException {
+                                   LinkedBlockingQueue<Object> throttler) throws BinlogException, InterruptedException {
         throttler.take(); // 从阻流器当中取出一个
 
         long dumpTime = TimeUtils.time();
         LogEvent event;
-        try {
-            switch (data[4]) {
-                case EOFPacket.FIELD_COUNT:
-                    // just an eof no need to worry
-                    LogUtils.debug.debug("eof read from master");
-
-                    keepDump();
-                    // offer object to throttler
-                    return;
-                case ErrorPacket.FIELD_COUNT:
-                    throw new IOException(new String(data));
-                default:
-                    LogUtils.debug.debug("continue");
-            }
-
-            int origin = PACKET_HEAD_SIZE + 1;
-            int limit = data.length - origin;
-            LogBuffer buffer = new LogBuffer(data, origin, limit);
-            event = decoder.decode(buffer, context);
-
-            if (event == null) {
-                LogUtils.warn.warn("event is null");
+        switch (data[4]) {
+            case EOFPacket.FIELD_COUNT:
+                // just an eof no need to worry
+                LogUtils.debug.debug("eof read from master");
 
                 keepDump();
+                // offer object to throttler
                 return;
-            }
-        } catch (IOException e) {
-            handleIOException(new IOException(host + ":" + e.getLocalizedMessage()));
+            case ErrorPacket.FIELD_COUNT:
+                ErrorPacket err = new ErrorPacket();
+                err.read(data, 4);
+                throw new BinlogException(ErrorCode.valueOfMySQLErrno(err.errno), new Exception(new String(err.message)), binlogFile + ":4");
+            default:
+                LogUtils.debug.debug("continue");
+        }
+
+        int origin = PACKET_HEAD_SIZE + 1;
+        int limit = data.length - origin;
+        LogBuffer buffer = new LogBuffer(data, origin, limit);
+        event = decoder.decode(buffer, context);
+
+        if (event == null) {
+            LogUtils.warn.warn("event is null");
+
+            keepDump();
             return;
         }
 
@@ -822,13 +853,8 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
             if (callKeepDump) {
                 keepDump();
             }
-        } catch (IOException e) {
-            handleIOException(e);
-        } catch (InterruptedException e) {
-            // InterruptedException that means all have closed because of the interrupt
-            close(); // just close
         } catch (BinlogException e) {
-            handleIOException(new IOException(e));
+            handleException(e);
         } catch (Throwable e) {
             handleError(e);
         }
@@ -848,7 +874,7 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
      */
     private boolean handle(LogEvent event, Carrier carrier, TableMetaCache meta,
                            ILeaderSelector leader, Map<String, GTID> gtids,
-                           ConcurrentLinkedQueue<LogPosition> logPositions) throws Exception {
+                           ConcurrentLinkedQueue<LogPosition> logPositions) throws BinlogException {
         int eventType = event.getHeader().getType();
         boolean isCommit = false;
 
@@ -874,8 +900,8 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
                 TableMapLogEvent tme = ((RowsLogEvent) event).getTable();
 
                 if (tme == null) {
-                    throw new BinlogException(ErrorCode.ERR_TABLE_META, "binlog file " + binlogFile + ", binlog pos " + event.getLogPos()
-                            + ", event type " + eventType + ",获取table map log event 失败 ");
+                    throw new BinlogException(ErrorCode.ERR_DUMP_NO_TABLE, new Exception("binlog file " + binlogFile + ", binlog pos " + event.getLogPos()
+                            + ", event type " + eventType + ",获取table map log event 失败 "), "");
                 }
 
                 String table = tme.getTableName();
@@ -889,14 +915,16 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
                 carrier.car.table = table;
                 carrier.car.tableMeta = updateTableMetaByCase(tme.getColumnInfo(), db, table, meta);
                 if (carrier.car.tableMeta == null) {
-                    throw new BinlogException(ErrorCode.ERR_TABLE_META, "获取表 " + db + "." + table + "元数据信息失败!!");
+                    throw new BinlogException(ErrorCode.ERR_DUMP_NO_TABLE, new Exception("获取表 " + db + "." + table + "元数据信息失败"), db + "." + table);
                 }
 
                 try {
                     TableRowsParser.parse(carrier); // 到这里需要将row进行解析 到具体的数值 开始并行发送
                 } catch (Throwable exp) {
                     LogUtils.error.error("表 " + db + "." + table + " 解析失败 协议不兼容/被更改", exp);
-                    throw new BinlogException(ErrorCode.PARSER_ERROR, "表 " + db + "." + table + " 解析失败 协议不兼容");
+                    throw new BinlogException(ErrorCode.WARN_MySQL_ROWEVENT_PARSE, new Exception(db + "." + table + " 解析失败 协议不兼容"),
+                            "file=" + binlogFile + ", pos=" + event.getLogPos()
+                                    + ", type=" + eventType);
                 }
                 break;
             case LogEvent.GTID_LOG_EVENT:
@@ -946,23 +974,6 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
         if (gtids.size() != 0) { // MySQL 5.5是没有gtid 并且高版本的MySQL也可能不开gtid
             logPos.addAllGtids(gtids);
             logPos.refresh();
-        }
-
-        if (isTerminalGtid && isCommit) {
-            try {
-                Meta.Terminal terminal = metaInfo.getTerminal();
-                if (terminal != null) {
-                    leader.updateZNodesState(terminal, metaInfo);
-                }
-            } catch (Exception e) {
-                handleIOException(new IOException(e));
-                return true;
-            } finally {
-                close();
-            }
-
-            // 都已经是终止节点 则停止 继续dump
-            return false;
         }
 
         // 多线程发送版本不允许强制同步binlog 位置
@@ -1105,7 +1116,7 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
         gtids.put(sid, newGtid);
     }
 
-    private void prepare() throws IOException {
+    private void prepare() throws BinlogException {
         LogUtils.debug.debug("prepare");
         this.originPos = getLogPos();
         this.dump.connect();
@@ -1137,7 +1148,7 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
      * @param connector
      * @throws IOException
      */
-    protected void updateConnectionProps(MySQLConnector connector) throws IOException {
+    protected void updateConnectionProps(MySQLConnector connector) {
         MySQLExecutor exe = new MySQLExecutor(connector);
         exe.setConnCfg(metaInfo.getDbInfo().getSlaveUUID());
     }
