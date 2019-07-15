@@ -41,11 +41,11 @@ BinLake是一个集群化的数据库Binary Log管理、采集和分发系统，
 ## 架构设计  
 [BinLake-arc](./doc/binlake-arc.md)  
 
-## 部署方案  
+## 部署方案   
 [BinLake-deploy](./doc/binlake-deploy.md)  
 
-## 使用文档  
-[BinLake-start](./doc/binlake-start.md)  
+## 快速安装(QuickStart)  
+[BinLake-start](./doc/binlake-demo.md)  
 
 ## 开源引用  
 [BinLake-quote](./doc/binlake-quote.md)
