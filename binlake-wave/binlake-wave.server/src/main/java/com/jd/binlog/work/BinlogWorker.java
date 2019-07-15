@@ -237,7 +237,7 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
         MQRule mr = new MQRule(mqRule, conv, producer, part, this);
         rs.add(mr);
 
-        return mqRule.getType() == Meta.OrderType.NO_ORDER;
+        return mqRule.getOrder() == Meta.OrderType.NO_ORDER;
     }
 
     /**

@@ -47,8 +47,7 @@ public class ZkService {
      */
     public Meta.DbInfo getDbInfo(String host) throws Exception {
         logger.info("getDbInfo host : " + host);
-        byte[] data = client.getData().forPath(zkPath + host);
-        return Meta.DbInfo.unmarshalJson(data);
+        return MetaUtils.dbInfo(client, zkPath + host);
     }
 
     /**
@@ -152,6 +151,12 @@ public class ZkService {
         logger.info("getCandidate host : " + host);
         byte[] data = client.getData().forPath(zkPath + host + ConstUtils.ZK_CANDIDATE_PATH);
         return Meta.Candidate.unmarshalJson(data);
+    }
+
+    public Meta.Error getError(String host) throws Exception {
+        logger.info("getCandidate host : " + host);
+        byte[] data = client.getData().forPath(zkPath + host + ConstUtils.ZK_ERROR_PATH);
+        return Meta.Error.unmarshalJson(data);
     }
 
     public void close() {
@@ -260,13 +265,14 @@ public class ZkService {
     public boolean checkChildSENodeExist(String host, int port) throws Exception {
         String key = ApiCenter.makeZNodePath(host, port + "");
         List<String> childList = client.getChildren().forPath(zkPath + key);
-        childList.remove(ConstUtils.ZK_DYNAMIC_PATH.substring(1));
-        childList.remove(ConstUtils.ZK_COUNTER_PATH.substring(1));
-        childList.remove(ConstUtils.ZK_TERMINAL_PATH.substring(1));
-        childList.remove(ConstUtils.ZK_CANDIDATE_PATH.substring(1));
-        childList.remove(ConstUtils.ZK_LEADER_PATH.substring(1));
+        for (String child : childList) {
+            Stat stat = client.checkExists().forPath(zkPath + key + "/" + child);
+            if (stat != null && stat.getEphemeralOwner() > 0) {
+                return true;
+            }
+        }
 
-        return childList.size() > 0;
+        return false;
     }
 
     /**
@@ -323,7 +329,7 @@ public class ZkService {
                 if (!checkChildSENodeExist(host, port)) {
                     break;
                 }
-                if (count > 10) {
+                if (count > 50) {
                     throw new Exception("ephemeral node disappeared too long after set offline");
                 }
                 count++;
