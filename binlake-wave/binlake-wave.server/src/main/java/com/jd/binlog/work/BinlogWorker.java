@@ -938,7 +938,7 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
 
                 Meta.Terminal terminal = null;
                 if ((terminal = metaInfo.getTerminal()) != null &&
-                        compare(newGtid.toString(), terminal.getGtid()) >= 0) {
+                        compare(newGtid.toString(), terminal.getGtid())) {
                     isTerminalGtid = true;
                 }
 
@@ -1009,20 +1009,18 @@ public class BinlogWorker extends Thread implements IBinlogWorker {
         } else if (!StringUtils.endsWith(upper, BEGIN)) {
 
             carrier.car.db = qe.getDbName();
-            for (String sql : query.split(";")) {
-                SimpleDdlParser.DdlResult result = SimpleDdlParser.parse(sql.trim(), qe.getDbName());
-                String schema = qe.getDbName();
+            SimpleDdlParser.DdlResult result = SimpleDdlParser.parse(query.trim(), qe.getDbName());
+            String schema = qe.getDbName();
 
-                switch (result.getType()) {
-                    case RENAME:
-                        for (SimpleDdlParser.DdlResult rst : result.getRsts()) {
-                            handleDDLParseResult(rst, schema, tableMetaCache, carrier);
-                        }
-                        break;
-                    default:
-                        handleDDLParseResult(result, schema, tableMetaCache, carrier);
-                        break;
-                }
+            switch (result.getType()) {
+                case RENAME:
+                    for (SimpleDdlParser.DdlResult rst : result.getRsts()) {
+                        handleDDLParseResult(rst, schema, tableMetaCache, carrier);
+                    }
+                    break;
+                default:
+                    handleDDLParseResult(result, schema, tableMetaCache, carrier);
+                    break;
             }
             return true; // ddl 语句也需要保存不能够直接从队列当中拿走 兼容gtid操作
         }

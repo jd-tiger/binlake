@@ -39,7 +39,7 @@ public class GTIDUtils {
      * </p>
      * @throws Exception
      */
-    public static int compare(String src, String dst) throws BinlogException {
+    public static int comparex(String src, String dst) throws BinlogException {
         int rs1 = compare0(src, dst) ^ RANGE_EQUAL; // 去除 相等的集合 不影响结果
         int rs2 = compare0(dst, src) ^ RANGE_EQUAL; // 去除 相等的集合 不影响结果
 
@@ -67,6 +67,41 @@ public class GTIDUtils {
         }
 
         throw new BinlogException(ErrorCode.ERR_GTID_COMPARE, new Exception("gtid 集合之间多种关系并存 无法判断两者大小 "), "src gtid " + src + "<=> dest gtid " + dst);
+    }
+
+    // contains src contains dst
+    public static boolean compare(String src, String dst) {
+        Map<String, ArrayList<Long[]>> srcM = toMap(src);
+        Map<String, ArrayList<Long[]>> destM = toMap(dst);
+
+        for (Map.Entry<String, ArrayList<Long[]>> entry : destM.entrySet()) {
+            if (!srcM.containsKey(entry.getKey())) {
+                // key not exits on source
+                return false;
+            }
+
+            ArrayList<Long[]> srcInters = srcM.get(entry.getKey());
+            ArrayList<Long[]> dstInters = entry.getValue();
+
+            for (Long[] di : dstInters) {
+                // dst interval is not contained in source intervals
+                if (!intervalContains(srcInters, di)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    // intervalContains
+    private static boolean intervalContains(ArrayList<Long[]> intervals, Long[] di) {
+        for (Long[] i : intervals) {
+            if (i[0] <= di[0] && i[1] >= di[1]) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -219,6 +254,29 @@ public class GTIDUtils {
     public static void main(String[] args) throws Exception {
         String gtid1 = "bd4e26ed-2bd7-4a13-9470-5d6d6f0bebb0:1-50,5ecf7dc9-cfbc-47d3-89ed-f9bacde3e0b4:3-50";
         String gtid2 = "bd4e26ed-2bd7-4a13-9470-5d6d6f0bebb0:1:6:12-50,5ecf7dc9-cfbc-47d3-89ed-f9bacde3e0b4:3-50";
+        System.err.println("gtid1 " + compare(gtid1, gtid2) + " gtid2");
+
+
+        gtid1 = "bd4e26ed-2bd7-4a13-9470-5d6d6f0bebb0:1-50,5ecf7dc9-cfbc-47d3-89ed-f9bacde3e0b4:3-50";
+        gtid2 = "bd4e26ed-2bd7-4a13-9470-5d6d6f0bebb0:12-50,5ecf7dc9-cfbc-47d3-89ed-f9bacde3e0b4:3-50";
+        System.err.println("gtid1 " + compare(gtid1, gtid2) + " gtid2");
+
+
+        gtid1 = "bd4e26ed-2bd7-4a13-9470-5d6d6f0bebb0:1-52,5ecf7dc9-cfbc-47d3-89ed-f9bacde3e0b4:3-50";
+        gtid2 = "bd4e26ed-2bd7-4a13-9470-5d6d6f0bebb0:12-50,5ecf7dc9-cfbc-47d3-89ed-f9bacde3e0b4:3-50";
+        System.err.println("gtid1 " + compare(gtid1, gtid2) + " gtid2");
+
+
+        gtid2 = "bd4e26ed-2bd7-4a13-9470-5d6d6f0bebb0:1-52";
+        gtid1 = "bd4e26ed-2bd7-4a13-9470-5d6d6f0bebb0:12-50";
+        System.err.println("gtid1 " + compare(gtid1, gtid2) + " gtid2");
+
+        gtid2 = "bd4e26ed-2bd7-4a13-9470-5d6d6f0bebb0:1-55";
+        gtid1 = "bd4e26ed-2bd7-4a13-9470-5d6d6f0bebb0:1-54,5ecf7dc9-cfbc-47d3-89ed-f9bacde3e0b4:3-50";
+        System.err.println("gtid1 " + compare(gtid1, gtid2) + " gtid2");
+
+        gtid2 = "bd4e26ed-2bd7-4a13-9470-5d6d6f0bebb0:1-55,5ecf7dc9-cfbc-47d3-89ed-f9bacde3e0b4:3-50";
+        gtid1 = "bd4e26ed-2bd7-4a13-9470-5d6d6f0bebb0:1-55,5ecf7dc9-cfbc-47d3-89ed-f9bacde3e0b4:3-50";
         System.err.println("gtid1 " + compare(gtid1, gtid2) + " gtid2");
     }
 }
