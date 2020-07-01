@@ -45,7 +45,7 @@
         <protobuf.format.version>1.2</protobuf.format.version>
         <jetty.servlet.version>8.1.13.v20130916</jetty.servlet.version>
         <commons.httpclient.version>3.0</commons.httpclient.version>
-        <mysql.connector.version>5.1.14</mysql.connector.version>
+        <mysql.connector.version>8.0.16</mysql.connector.version>
         <ump.profiler.version>4.0.5</ump.profiler.version>
         <kafka.version>1.0.0</kafka.version>
     </properties>
