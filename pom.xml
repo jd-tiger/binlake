@@ -40,7 +40,7 @@
         <!-- oro in relation to regular expression -->
         <oro.version>2.0.8</oro.version>
         <org.apache.commons.lang3.version>3.5</org.apache.commons.lang3.version>
-        <zookeeper.version>3.4.5</zookeeper.version>
+        <zookeeper.version>3.4.14</zookeeper.version>
         <curator.version>2.11.0</curator.version>
         <protobuf.format.version>1.2</protobuf.format.version>
         <jetty.servlet.version>8.1.13.v20130916</jetty.servlet.version>
