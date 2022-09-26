@@ -341,17 +341,11 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
      * @throws Exception
      */
     private void usingGTID(LogPosition logPos) throws Exception {
-        switch (compare(logPos.getGtidSets(), binlogInfo.getExecutedGtidSets())) {
-            case 0:
-                break;
-            case 1:
-                binlogInfo.setExecutedGtidSets(logPos.getGtidSets())
-                        .setBinlogFile(logPos.getFileName())
-                        .setBinlogPos(logPos.getPosition())
-                        .setBinlogWhen(logPos.getWhen());
-                break;
-            case -1:
-                break;
+        if (compare(logPos.getGtidSets(), binlogInfo.getExecutedGtidSets())) {
+            binlogInfo.setExecutedGtidSets(logPos.getGtidSets())
+                    .setBinlogFile(logPos.getFileName())
+                    .setBinlogPos(logPos.getPosition())
+                    .setBinlogWhen(logPos.getWhen());
         }
     }
 
@@ -939,7 +933,7 @@ public class ZkLeaderSelector extends LeaderSelectorListenerAdapter implements I
             try {
                 // 比较gtid
                 if (binlogInfo.getWithGTID() &&
-                        compare(binlogInfo.getExecutedGtidSets(), terminal.getGtid()) >= 0) {
+                        compare(binlogInfo.getExecutedGtidSets(), terminal.getGtid())) {
                     LogUtils.warn.warn("current gtid " + binlogInfo.getExecutedGtidSets() + ", terminal gtid " + terminal.getGtid());
                     updateZNodesState(terminal, metaInfo);
                     return false;
